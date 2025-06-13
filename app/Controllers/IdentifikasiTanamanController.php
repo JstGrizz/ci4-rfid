@@ -204,7 +204,7 @@ class IdentifikasiTanamanController extends ResourceController
         $hsId = $this->getHsIdByPtEstateAndBlok($ptEstateId, $blokId);
 
         if ($hsId === null) {
-            return $this->response->setJSON(['success' => false, 'error' => 'Hectar Statement not found.']);
+            return $this->response->setJSON(['success' => false, 'error' => 'Pernyataan Hektar tidak ditemukan.']);
         }
 
         $tanamanModel = new TanamanModel();
@@ -250,7 +250,7 @@ class IdentifikasiTanamanController extends ResourceController
             }
         }
 
-        return $this->response->setJSON(['success' => false, 'error' => 'Status tidak ditemukan']);
+        return $this->response->setJSON(['success' => false, 'error' => 'Status tidak ditemukan.']);
     }
 
     public function fetchSister($latitude = null, $longitude = null, $noTitikTanam = null)
@@ -262,7 +262,7 @@ class IdentifikasiTanamanController extends ResourceController
             $hsId = $this->getHsIdByPtEstateAndBlok($ptEstateId, $blokId);
 
             if ($hsId === null) {
-                return $this->response->setJSON(['success' => false, 'error' => 'Hectar Statement not found.']);
+                return $this->response->setJSON(['success' => false, 'error' => 'Pernyataan Hektar tidak ditemukan.']);
             }
 
             $tanamanModel = new TanamanModel();
@@ -280,7 +280,7 @@ class IdentifikasiTanamanController extends ResourceController
                 return $this->response->setJSON(['success' => true, 'sister' => 0]);
             }
         } else {
-            return $this->response->setJSON(['success' => false, 'error' => 'Parameter tidak lengkap']);
+            return $this->response->setJSON(['success' => false, 'error' => 'Parameter tidak lengkap.']);
         }
     }
 
@@ -326,7 +326,7 @@ class IdentifikasiTanamanController extends ResourceController
         $hs_id = $this->getHsIdByPtEstateAndBlok($pt_estate_id, $blok_id);
 
         if (!$hs_id) {
-            return $this->response->setJSON(['success' => false, 'error' => 'HS ID tidak ditemukan']);
+            return $this->response->setJSON(['success' => false, 'error' => 'ID Pernyataan Hektar tidak ditemukan.']);
         }
 
         // Cek apakah RFID sudah ada di database (hanya jika RFID bukan NULL atau kosong)
@@ -342,7 +342,7 @@ class IdentifikasiTanamanController extends ResourceController
             if ($existingRfid) {
                 // Tangani kasus NULL atau kosong secara khusus
                 $rfidDisplay = ($rfid_tanaman === null) ? 'NULL' : $rfid_tanaman;
-                return $this->response->setJSON(['success' => false, 'error' => 'RFID ' . $rfidDisplay . ' sudah terdaftar di tanaman yang aktif, tolong diganti']);
+                return $this->response->setJSON(['success' => false, 'error' => 'RFID ' . $rfidDisplay . ' sudah terdaftar di tanaman yang aktif, tolong diganti.']);
             }
         }
 
@@ -368,9 +368,9 @@ class IdentifikasiTanamanController extends ResourceController
         // Insert data ke dalam tabel 'tanaman' menggunakan TanamanModel
         $tanamanModel = new TanamanModel();
         if ($tanamanModel->insert($data)) {
-            return $this->response->setJSON(['success' => true, 'message' => 'Data berhasil disimpan']);
+            return $this->response->setJSON(['success' => true, 'message' => 'Data berhasil disimpan.']);
         } else {
-            return $this->response->setJSON(['success' => false, 'error' => 'Gagal menyimpan data']);
+            return $this->response->setJSON(['success' => false, 'error' => 'Gagal menyimpan data.']);
         }
     }
 
@@ -383,7 +383,7 @@ class IdentifikasiTanamanController extends ResourceController
         if ($activeTanaman) {
             return $this->response->setJSON(['success' => true, 'tanaman' => $activeTanaman]);
         } else {
-            return $this->response->setJSON(['success' => false, 'error' => 'No active tanaman found']);
+            return $this->response->setJSON(['success' => false, 'error' => 'Tidak ada data tanaman aktif ditemukan.']);
         }
     }
 
@@ -410,12 +410,11 @@ class IdentifikasiTanamanController extends ResourceController
         $hsId = $this->getHsIdByPtEstateAndBlok($ptEstateId, $blokId);
 
         if ($hsId === null) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Hectar Statement not found.']);
+            return $this->response->setJSON(['success' => false, 'message' => 'Pernyataan Hektar tidak ditemukan.']);
         }
 
         $tanamanModel = new TanamanModel();
-        $currentTime =
-            date('Y-m-d H:i:s');
+        $currentTime = date('Y-m-d H:i:s');
 
         foreach ($rfidTanaman as $index => $currentRfid) {
             $rfidToUse = isset($newRfid[$index]) && !empty($newRfid[$index]) ? $newRfid[$index] : $currentRfid;
@@ -452,9 +451,10 @@ class IdentifikasiTanamanController extends ResourceController
                 $tanamanData['tgl_akhir_identifikasi'] = null;
             }
 
-            $tanamanModel->where('rfid_tanaman', $currentRfid)->set($tanamanData)->update();
+            // Memperbaiki pembaruan: Gunakan update(null, $data) setelah where
+            $tanamanModel->where('rfid_tanaman', $currentRfid)->update(null, $tanamanData);
         }
 
-        return $this->response->setJSON(['success' => true, 'message' => 'Data updated successfully.']);
+        return $this->response->setJSON(['success' => true, 'message' => 'Data berhasil diperbarui.']);
     }
 }
