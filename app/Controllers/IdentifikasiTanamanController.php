@@ -398,14 +398,21 @@ class IdentifikasiTanamanController extends ResourceController
         ]);
     }
 
+    // ... (bagian atas controller Anda) ...
+
     public function updateIdentifikasiTanaman()
     {
-        $ptEstateId = $this->request->getPost('pt_estate');
-        $blokId = $this->request->getPost('blok_id');
-        $rfidTanaman = $this->request->getPost('rfid_tanaman');
-        $newRfid = $this->request->getPost('new_rfid');
-        $lossesId = $this->request->getPost('penyebab_loses');
-        $deskripsiLoses = $this->request->getPost('deskripsi_loses');
+        $data = $this->request->getPost();
+
+        $ptEstateId = $data['pt_estate'] ?? null;
+        $blokId = $data['blok_id'] ?? null;
+        $tanamanIds = $data['tanaman_id'] ?? [];
+        $rfidTanamanArray = $data['rfid_tanaman'] ?? [];
+        $newRfidArray = $data['new_rfid'] ?? [];
+        $lossesIdArray = $data['penyebab_loses'] ?? [];
+        $deskripsiLosesArray = $data['deskripsi_loses'] ?? [];
+        $updateRfidCheckboxes = $data['update_rfid'] ?? [];
+        $updateLossesCheckboxes = $data['update_losses'] ?? [];
 
         $hsId = $this->getHsIdByPtEstateAndBlok($ptEstateId, $blokId);
 
@@ -416,43 +423,68 @@ class IdentifikasiTanamanController extends ResourceController
         $tanamanModel = new TanamanModel();
         $currentTime = date('Y-m-d H:i:s');
 
-        foreach ($rfidTanaman as $index => $currentRfid) {
-            $rfidToUse = isset($newRfid[$index]) && !empty($newRfid[$index]) ? $newRfid[$index] : $currentRfid;
+        if (!is_array($tanamanIds) || empty($tanamanIds)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Tidak ada ID tanaman yang dikirim untuk diperbarui.']);
+        }
 
-            // Validate new RFID (if provided and not null or empty)
-            if (!empty($newRfid[$index])) {
-                $existingNewRfid = $tanamanModel
-                    ->where('rfid_tanaman', $newRfid[$index])
-                    ->where('tgl_akhir_identifikasi', null)
-                    ->first();
+        foreach ($tanamanIds as $index => $tanamanIdToUpdate) {
+            $currentRfid = $rfidTanamanArray[$index] ?? null;
 
-                if ($existingNewRfid) {
-                    return $this->response->setJSON(['success' => false, 'message' => 'RFID ' . $newRfid[$index] . ' sudah terdaftar di tanaman yang aktif, tolong diganti.']);
-                }
+            if (empty($tanamanIdToUpdate)) {
+                continue; // Lewati jika ID tanaman kosong
             }
 
+            $tanamanData = [];
 
-            $lsId = isset($lossesId[$index]) && !empty($lossesId[$index]) ? $lossesId[$index] : null;
-            $deskripsi = isset($deskripsiLoses[$index]) && !empty($deskripsiLoses[$index]) ? $deskripsiLoses[$index] : null;
+            // --- Logika untuk update RFID ---
+            $rfidToUse = $currentRfid;
+            $isUpdateRfidChecked = isset($updateRfidCheckboxes[$index]) && $updateRfidCheckboxes[$index] === 'on';
 
-            $tanamanData = [
-                'rfid_tanaman' => $rfidToUse,
-            ];
+            if ($isUpdateRfidChecked) {
+                $newRfidValue = $newRfidArray[$index] ?? '';
+                if (!empty($newRfidValue)) {
+                    $existingNewRfid = $tanamanModel
+                        ->where('rfid_tanaman', $newRfidValue)
+                        ->where('tgl_akhir_identifikasi', null)
+                        ->first();
 
-            if ($lsId !== null && $deskripsi !== null) {
+                    if ($existingNewRfid && $existingNewRfid['tanaman_id'] != $tanamanIdToUpdate) {
+                        return $this->response->setJSON(['success' => false, 'message' => 'RFID ' . $newRfidValue . ' sudah terdaftar di tanaman yang aktif, tolong diganti.']);
+                    }
+                    $rfidToUse = $newRfidValue;
+                }
+            }
+            $tanamanData['rfid_tanaman'] = $rfidToUse;
+
+
+            // --- Logika untuk update Losses ---
+            $isUpdateLossesChecked = isset($updateLossesCheckboxes[$index]) && $updateLossesCheckboxes[$index] === 'on';
+            $lsId = $lossesIdArray[$index] ?? null;
+            $deskripsi = $deskripsiLosesArray[$index] ?? ''; // Pastikan ini string kosong jika tidak ada input
+
+            if ($isUpdateLossesChecked && $lsId !== null) {
                 $tanamanData['is_loses'] = 'Y';
                 $tanamanData['losses_id'] = $lsId;
                 $tanamanData['deskripsi_loses'] = $deskripsi;
                 $tanamanData['tgl_akhir_identifikasi'] = $currentTime;
+                $tanamanData['status_id'] = 2; // Ganti dengan ID status 'Loses' Anda yang sebenarnya
             } else {
-                $tanamanData['is_loses'] = 'N';
-                $tanamanData['losses_id'] = null;
-                $tanamanData['deskripsi_loses'] = null;
-                $tanamanData['tgl_akhir_identifikasi'] = null;
+                // Logika untuk mereset loses jika checkbox tidak dicentang atau lsId null
+                $currentTanamanStatus = $tanamanModel->find($tanamanIdToUpdate);
+                if ($currentTanamanStatus && $currentTanamanStatus['is_loses'] === 'Y') {
+                    $tanamanData['is_loses'] = 'N';
+                    $tanamanData['losses_id'] = null;
+                    $tanamanData['deskripsi_loses'] = null;
+                    $tanamanData['tgl_akhir_identifikasi'] = null;
+                    $tanamanData['status_id'] = 1; // Ganti dengan ID status 'Aktif' Anda yang sebenarnya
+                }
             }
 
-            // Memperbaiki pembaruan: Gunakan update(null, $data) setelah where
-            $tanamanModel->where('rfid_tanaman', $currentRfid)->update(null, $tanamanData);
+            $updateResult = $tanamanModel->update($tanamanIdToUpdate, $tanamanData);
+
+            if (!$updateResult) {
+                log_message('error', 'Failed to update Tanaman ID ' . $tanamanIdToUpdate . '. Errors: ' . json_encode($tanamanModel->errors()));
+            }
         }
 
         return $this->response->setJSON(['success' => true, 'message' => 'Data berhasil diperbarui.']);
