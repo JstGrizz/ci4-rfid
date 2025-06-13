@@ -213,7 +213,8 @@
                 fetch(`<?= base_url('identifikasi-tanaman/getBloksByPtEstateId'); ?>/${ptEstateId}`)
                     .then(response => response.json())
                     .then(data => {
-                        blokSelect.innerHTML = '<option value="">Select Blok</option>'; // Reset blok options
+                        // Mengubah teks opsi default ke Bahasa Indonesia
+                        blokSelect.innerHTML = '<option value="">Pilih Blok</option>';
                         data.bloks.forEach(blok => {
                             const option = document.createElement('option');
                             option.value = blok.blok_id;
@@ -224,9 +225,11 @@
                         // Auto-fill fields after fetching blocks
                         autoFillFields();
                     })
-                    .catch(error => console.error('Error fetching blocks:', error));
+                    // Mengubah pesan error ke Bahasa Indonesia
+                    .catch(error => console.error('Gagal mengambil data blok:', error));
             } else {
-                blokSelect.innerHTML = '<option value="">Select Blok</option>'; // Reset blok if no PT selected
+                // Mengubah teks opsi default ke Bahasa Indonesia
+                blokSelect.innerHTML = '<option value="">Pilih Blok</option>';
             }
         }
 
@@ -249,15 +252,15 @@
                             document.getElementById('week').value = data.week; // Auto-fill week
                         }
                     })
-                    .catch(error => console.error('Error fetching hectare statement data:', error));
+                    // Mengubah pesan error ke Bahasa Indonesia
+                    .catch(error => console.error('Gagal mengambil data pernyataan hektar:', error));
             }
         }
 
         // Function to auto-fill longitude and latitude if no titik tanam is inputed
         function autoFillTitikTanam() {
             const noTitikTanam = document.getElementById('no_titik_tanam').value;
-            const ptEstateId = document.getElementById('pt_estate')
-                .value;
+            const ptEstateId = document.getElementById('pt_estate').value;
             const blokId = document.getElementById('blok_id').value;
             const longitudeField = document.getElementById('longitude');
             const latitudeField = document.getElementById('latitude');
@@ -280,7 +283,8 @@
                             latitudeField.readOnly = false;
                         }
                     })
-                    .catch(error => console.error('Error fetching No Titik Tanam data:', error));
+                    // Mengubah pesan error ke Bahasa Indonesia
+                    .catch(error => console.error('Gagal mengambil data Nomor Titik Tanam:', error));
             } else {
                 // Reset fields if no Titik Tanam or required fields are provided
                 longitudeField.readOnly = false;
@@ -324,12 +328,10 @@
                                                     id="rfid_tanaman_${index}" value="${tanaman.rfid_tanaman}" readonly />
                                             </div>
                                             <div class="form-group">
-                                                <label>Update RFID?</label>
-                                                <input type="checkbox" class="form-check-input" id="update_rfid_${index}" onchange="toggleNewRfid(${index})" />
+                                                <label>Perbarui RFID?</label> <input type="checkbox" class="form-check-input" id="update_rfid_${index}" onchange="toggleNewRfid(${index})" />
                                                 <div id="updateRfidFields_${index}" style="display: none;">
                                                     <input type="text" class="form-control" name="new_rfid[${index}]"
-                                                        id="update_rfid_tanaman_${index}" placeholder="Enter new RFID" />
-                                                </div>
+                                                        id="update_rfid_tanaman_${index}" placeholder="Masukkan RFID baru" /> </div>
                                             </div>
                                             <div class="form-group">
                                                 <label>Sister</label>
@@ -344,12 +346,10 @@
                                                     id="status_tanaman_${index}" value="${tanaman.nama_status}" readonly />
                                             </div>
                                             <div class="form-group">
-                                                <label>Update Losses?</label>
-                                                <input type="checkbox" class="form-check-input" id="update_losses_${index}" onchange="toggleLossesFields(${index})" />
+                                                <label>Perbarui Loses?</label> <input type="checkbox" class="form-check-input" id="update_losses_${index}" onchange="toggleLossesFields(${index})" />
                                                 <div id="lossesFields_${index}" style="display: none;">
                                                     <select class="form-select" name="penyebab_loses[${index}]" id="penyebab_loses_${index}">
-                                                        <option>Select Penyebab Loses</option>
-                                                    </select>
+                                                     </select>
                                                     <br>
                                                     <textarea class="form-control" name="deskripsi_loses[${index}]"
                                                         placeholder="Isi Deskripsi Penyebab Loses"></textarea>
@@ -365,10 +365,12 @@
                                 fetchLossesOptions(index);
                             });
                         } else {
-                            alert(data.error || 'No active tanaman found');
+                            // Menggunakan data.error dari controller atau pesan default Bahasa Indonesia
+                            alert(data.error || 'Tidak ada tanaman aktif ditemukan.');
                         }
                     })
-                    .catch(error => console.error('Error fetching active tanaman data:', error));
+                    // Mengubah pesan error ke Bahasa Indonesia
+                    .catch(error => console.error('Gagal mengambil data tanaman aktif:', error));
             }
         }
 
@@ -379,6 +381,14 @@
                 .then(data => {
                     if (data.success) {
                         const lossesSelect = document.getElementById(`penyebab_loses_${index}`);
+                        // Memastikan opsi default "Pilih Penyebab Loses" selalu ada dan tidak diduplikasi
+                        if (!lossesSelect.querySelector(
+                                'option[value=""]')) { // Menambahkan ini untuk mencegah duplikasi
+                            const defaultOption = document.createElement("option");
+                            defaultOption.value = "";
+                            defaultOption.text = "Pilih Penyebab Loses";
+                            lossesSelect.prepend(defaultOption); // Menambahkan di awal
+                        }
                         data.losses.forEach(loss => {
                             const option = document.createElement("option");
                             option.value = loss.losses_id;
@@ -387,7 +397,8 @@
                         });
                     }
                 })
-                .catch(error => console.error('Error fetching losses options:', error));
+                // Mengubah pesan error ke Bahasa Indonesia
+                .catch(error => console.error('Gagal mengambil opsi loses:', error));
         }
 
         // Toggle RFID input field visibility
@@ -412,6 +423,7 @@
             }
             autoFillTanamanData();
         });
+
         document.getElementById('form-identifikasi-tanaman-update').addEventListener('submit', function(event) {
             event.preventDefault(); // Prevent default form submission
 
@@ -424,15 +436,17 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        alert(data.message); // Show success message
+                        alert(data
+                            .message); // Show success message (sudah dalam Bahasa Indonesia dari controller)
                         window.location.reload();
                     } else {
-                        alert(data.message); // Show error message
+                        alert(data
+                            .message); // Show error message (sudah dalam Bahasa Indonesia dari controller)
                     }
                 })
                 .catch(error => {
-                    console.error('Error submitting form:', error);
-                    alert('An error occurred during submission.');
+                    console.error('Terjadi kesalahan saat mengirim formulir:', error); // Mengubah pesan error
+                    alert('Terjadi kesalahan saat pengiriman. Mohon coba lagi.'); // Mengubah pesan alert error
                 });
         });
     </script>
