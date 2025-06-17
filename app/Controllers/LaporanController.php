@@ -59,40 +59,77 @@ class LaporanController extends ResourceController
     // Fetch report data based on the request body (start_date, end_date, report_type)
     public function fetchReportData()
     {
-        $start_date = $this->request->getGet('start_date');
-        $end_date = $this->request->getGet('end_date');
-        $type = $this->request->getGet('report_type');
+        $start_date  = $this->request->getGet('start_date');
+        $end_date    = $this->request->getGet('end_date');
+        $type        = $this->request->getGet('report_type');
 
-        $reportPanenModel = new ReportPanenModel();
-        $allData = $reportPanenModel->getAggregatedData($start_date, $end_date);
+        $m = new ReportPanenModel();
 
-        $finalData = [];
-        foreach ($allData as $data) {
-            if ($type === 'weight') {
-                $finalData[] = [
-                    'MonthYear' => date('Y-m', strtotime($data['tanggal'])),
-                    'PT' => $data['PT'],
-                    'Estate' => $data['Estate'],
-                    'Block' => $data['Block'],
-                    'Status' => $data['Status'],
-                    'jumlah_tanaman' => $data['jumlah_pohon'],
-                    'TotalWeight' => $data['Berat'],
-                    'AverageTandan' => $data['Berat'] / $data['jumlah_pohon'],
-                ];
-            } elseif ($type === 'pokok') {
-                $finalData[] = [
-                    'MonthYear' => date('Y-m', strtotime($data['tanggal'])),
-                    'PT' => $data['PT'],
-                    'Estate' => $data['Estate'],
-                    'Block' => $data['Block'],
-                    'Status' => $data['Status'],
-                    'jumlah_tanaman' => $data['jumlah_pohon'],
-                    'TotalWeight' => $data['Berat'],
-                ];
+        switch ($type) {
+            case 'pokok':
+                $allData = $m->getAggregatedDataPokok($start_date, $end_date);
+                break;
+            case 'weight':
+                $allData = $m->getAggregatedDataWeight($start_date, $end_date);
+                break;
+            case 'status':
+                $allData = $m->getAggregatedDataByStatus($start_date, $end_date);
+                break;
+            case 'blok_status':
+                $allData = $m->getAggregatedDataByBlockStatus($start_date, $end_date);
+                break;
+            default:
+                return $this->response->setJSON([]);
+        }
+
+        $final = [];
+        foreach ($allData as $d) {
+            $MY = $d['tanggal']; // sudah 'YYYY-MM'
+            switch ($type) {
+                case 'pokok':
+                    $final[] = [
+                        'MonthYear'      => $MY,
+                        'PT'             => $d['PT'],
+                        'Estate'         => $d['Estate'],
+                        'jumlah_tanaman' => (int)$d['jumlah_pohon'],
+                    ];
+                    break;
+                case 'weight':
+                    $avg = $d['jumlah_pohon']
+                        ? $d['Berat'] / $d['jumlah_pohon']
+                        : 0;
+                    $final[] = [
+                        'MonthYear'      => $MY,
+                        'PT'             => $d['PT'],
+                        'Estate'         => $d['Estate'],
+                        'jumlah_tanaman' => (int)$d['jumlah_pohon'],
+                        'TotalWeight'    => (float)$d['Berat'],
+                        'AverageTandan'  => round($avg, 2),
+                    ];
+                    break;
+                case 'status':
+                    $final[] = [
+                        'MonthYear'      => $MY,
+                        'PT'             => $d['PT'],
+                        'Estate'         => $d['Estate'],
+                        'Status'         => $d['Status'],
+                        'jumlah_tanaman' => (int)$d['jumlah_pohon'],
+                    ];
+                    break;
+                case 'blok_status':
+                    $final[] = [
+                        'MonthYear'      => $MY,
+                        'PT'             => $d['PT'],
+                        'Estate'         => $d['Estate'],
+                        'Block'          => $d['Block'],
+                        'Status'         => $d['Status'],
+                        'jumlah_tanaman' => (int)$d['jumlah_pohon'],
+                    ];
+                    break;
             }
         }
 
-        return $this->response->setJSON($finalData);
+        return $this->response->setJSON($final);
     }
 
     public function laporanPrediksiPanen()
@@ -557,42 +594,89 @@ class LaporanController extends ResourceController
         return $this->response->setJSON($report);
     }
 
+    // di App/Controllers/LaporanController.php
+
     public function downloadPanenBulananExcel()
     {
-        // 1) Read filters
         $start = $this->request->getGet('start_date');
         $end   = $this->request->getGet('end_date');
         $type  = $this->request->getGet('report_type');
 
-        // 2) Fetch raw aggregated data
-        $raw = (new ReportPanenModel())->getAggregatedData($start, $end);
-
-        // 3) Transform to rows
-        $rows = [];
-        foreach ($raw as $d) {
-            $r = [
-                'Month-Year'       => date('Y-m', strtotime($d['tanggal'])),
-                'PT'              => $d['PT'],
-                'Estate'          => $d['Estate'],
-                'Block'           => $d['Block'],
-                'Status'          => $d['Status'],
-                'Jumlah Tanaman'   => $d['jumlah_pohon'],
-                'Total Weight(kg)' => $d['Berat'],
-            ];
-            if ($type === 'weight') {
-                $r['Average Tandan(kg)'] = round($d['Berat'] / $d['jumlah_pohon'], 2);
-            }
-            $rows[] = $r;
+        $m = new \App\Models\ReportPanenModel();
+        // Pilih query sesuai tipe
+        switch ($type) {
+            case 'pokok':
+                $raw = $m->getAggregatedDataPokok($start, $end);
+                break;
+            case 'weight':
+                $raw = $m->getAggregatedDataWeight($start, $end);
+                break;
+            case 'status':
+                $raw = $m->getAggregatedDataByStatus($start, $end);
+                break;
+            case 'blok_status':
+                $raw = $m->getAggregatedDataByBlockStatus($start, $end);
+                break;
+            default:
+                $raw = [];
         }
 
-        // 4) Stream CSV
-        $filename = 'laporan-panen-bulanan_' . date('Ymd_His') . '.csv';
+        // Susun baris CSV sesuai tipe
+        $rows = [];
+        foreach ($raw as $d) {
+            switch ($type) {
+                case 'pokok':
+                    $rows[] = [
+                        'Month-Year'      => $d['tanggal'],
+                        'PT'              => $d['PT'],
+                        'Estate'          => $d['Estate'],
+                        'Jumlah Tanaman'  => $d['jumlah_pohon'],
+                    ];
+                    break;
+
+                case 'weight':
+                    $avg = $d['jumlah_pohon']
+                        ? round($d['Berat'] / $d['jumlah_pohon'], 2)
+                        : 0;
+                    $rows[] = [
+                        'Month-Year'            => $d['tanggal'],
+                        'PT'                    => $d['PT'],
+                        'Estate'                => $d['Estate'],
+                        'Jumlah Tanaman'        => $d['jumlah_pohon'],
+                        'Total Weight (kg)'     => $d['Berat'],
+                        'Average Tandan (kg)'   => $avg,
+                    ];
+                    break;
+
+                case 'status':
+                    $rows[] = [
+                        'Month-Year'                  => $d['tanggal'],
+                        'PT'                          => $d['PT'],
+                        'Estate'                      => $d['Estate'],
+                        'Status'                      => $d['Status'],
+                        'Jumlah Tanaman Per Status'   => $d['jumlah_pohon'],
+                    ];
+                    break;
+
+                case 'blok_status':
+                    $rows[] = [
+                        'Month-Year'                  => $d['tanggal'],
+                        'PT'                          => $d['PT'],
+                        'Estate'                      => $d['Estate'],
+                        'Blok'                        => $d['Block'],
+                        'Status'                      => $d['Status'],
+                        'Jumlah Tanaman Per Status'   => $d['jumlah_pohon'],
+                    ];
+                    break;
+            }
+        }
+
+        // streaming CSV
+        $filename = "laporan-panen-bulanan_{$type}_" . date('Ymd_His') . '.csv';
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
         $out = fopen('php://output', 'w');
-
-        if (! empty($rows)) {
-            // header row
+        if (!empty($rows)) {
             fputcsv($out, array_keys($rows[0]));
             foreach ($rows as $r) {
                 fputcsv($out, $r);
@@ -602,83 +686,117 @@ class LaporanController extends ResourceController
         exit;
     }
 
-    /**
-     * Download as PDF via FPDF
-     */
     public function downloadPanenBulananPdf()
     {
-        // 1) Read filters & data
         $start = $this->request->getGet('start_date');
         $end   = $this->request->getGet('end_date');
         $type  = $this->request->getGet('report_type');
-        $raw   = (new ReportPanenModel())->getAggregatedData($start, $end);
 
-        // 2) Transform same as CSV
-        $rows = [];
-        foreach ($raw as $d) {
-            $r = [
-                'Month-Year'     => date('Y-m', strtotime($d['tanggal'])),
-                'PT'            => $d['PT'],
-                'Estate'        => $d['Estate'],
-                'Block'         => $d['Block'],
-                'Status'        => $d['Status'],
-                'Jumlah Tanaman' => $d['jumlah_pohon'],
-                'Total Weight'   => $d['Berat'],
-            ];
-            if ($type === 'weight') {
-                $r['Average Tandan'] = round($d['Berat'] / $d['jumlah_pohon'], 2);
-            }
-            $rows[] = $r;
+        $m = new \App\Models\ReportPanenModel();
+        switch ($type) {
+            case 'pokok':
+                $raw = $m->getAggregatedDataPokok($start, $end);
+                break;
+            case 'weight':
+                $raw = $m->getAggregatedDataWeight($start, $end);
+                break;
+            case 'status':
+                $raw = $m->getAggregatedDataByStatus($start, $end);
+                break;
+            case 'blok_status':
+                $raw = $m->getAggregatedDataByBlockStatus($start, $end);
+                break;
+            default:
+                $raw = [];
         }
 
-        // 3) Initialize FPDF
-        $pdf = new Fpdf('L', 'mm', 'A4');
+        // Susun baris sama seperti Excel
+        $rows = [];
+        foreach ($raw as $d) {
+            switch ($type) {
+                case 'pokok':
+                    $rows[] = [
+                        'Month-Year'     => $d['tanggal'],
+                        'PT'             => $d['PT'],
+                        'Estate'         => $d['Estate'],
+                        'Jumlah Tanaman' => $d['jumlah_pohon'],
+                    ];
+                    break;
+
+                case 'weight':
+                    $avg = $d['jumlah_pohon']
+                        ? round($d['Berat'] / $d['jumlah_pohon'], 2)
+                        : 0;
+                    $rows[] = [
+                        'Month-Year'           => $d['tanggal'],
+                        'PT'                   => $d['PT'],
+                        'Estate'               => $d['Estate'],
+                        'Jumlah Tanaman'       => $d['jumlah_pohon'],
+                        'Total Weight (kg)'    => $d['Berat'],
+                        'Average Tandan (kg)'  => $avg,
+                    ];
+                    break;
+
+                case 'status':
+                    $rows[] = [
+                        'Month-Year'                => $d['tanggal'],
+                        'PT'                        => $d['PT'],
+                        'Estate'                    => $d['Estate'],
+                        'Status'                    => $d['Status'],
+                        'Jumlah Tanaman Per Status' => $d['jumlah_pohon'],
+                    ];
+                    break;
+
+                case 'blok_status':
+                    $rows[] = [
+                        'Month-Year'                => $d['tanggal'],
+                        'PT'                        => $d['PT'],
+                        'Estate'                    => $d['Estate'],
+                        'Blok'                      => $d['Block'],
+                        'Status'                    => $d['Status'],
+                        'Jumlah Tanaman Per Status' => $d['jumlah_pohon'],
+                    ];
+                    break;
+            }
+        }
+
+        // Buat PDF
+        $pdf = new \Fpdf\Fpdf('L', 'mm', 'A4');
         $pdf->SetMargins(10, 10);
         $pdf->AddPage();
-
-        // Title
         $pdf->SetFont('Arial', 'B', 14);
         $pdf->Cell(0, 10, 'Laporan Panen Bulanan', 0, 1, 'C');
         $pdf->SetFont('Arial', '', 10);
-        $pdf->Cell(
-            0,
-            6,
-            'Periode: ' . date('d-m-Y', strtotime($start)) . ' s/d ' . date('d-m-Y', strtotime($end)),
-            0,
-            1,
-            'C'
-        );
+        $pdf->Cell(0, 6, "Periode: " . date('d-m-Y', strtotime($start)) . " s/d " . date('d-m-Y', strtotime($end)), 0, 1, 'C');
         $pdf->Ln(4);
 
-        // 4) Table header
         if (empty($rows)) {
             $pdf->SetFont('Arial', 'I', 12);
             $pdf->Cell(0, 10, 'Tidak ada data untuk periode ini.', 1, 1, 'C');
         } else {
             $header = array_keys($rows[0]);
-            $usableWidth = $pdf->GetPageWidth() - 20; // 10mm margins either side
-            $colWidth = $usableWidth / count($header);
+            $usableW = $pdf->GetPageWidth() - 20;
+            $colW = $usableW / count($header);
 
-            // header style
+            // Header table
             $pdf->SetFont('Arial', 'B', 10);
             $pdf->SetFillColor(230, 230, 230);
             foreach ($header as $col) {
-                $pdf->Cell($colWidth, 7, $col, 1, 0, 'C', true);
+                $pdf->Cell($colW, 7, $col, 1, 0, 'C', true);
             }
             $pdf->Ln();
 
-            // 5) Data rows
+            // Data rows
             $pdf->SetFont('Arial', '', 9);
             foreach ($rows as $row) {
                 foreach ($row as $cell) {
-                    $pdf->Cell($colWidth, 6, $cell, 1);
+                    $pdf->Cell($colW, 6, $cell, 1);
                 }
                 $pdf->Ln();
             }
         }
 
-        // 6) Output
-        $filename = 'laporan-panen-bulanan_' . date('Ymd_His') . '.pdf';
+        $filename = "laporan-panen-bulanan_{$type}_" . date('Ymd_His') . '.pdf';
         $pdf->Output('D', $filename);
         exit;
     }

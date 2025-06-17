@@ -78,11 +78,13 @@
                                         <input type="date" id="end_date" name="end_date" class="form-control" required>
                                     </div>
                                     <div class="col-md">
-                                        <label for="end_date">Laporan Berdasarkan</label>
-                                        <select id="report_type" name="report_type" class="form-control"
-                                            aria-placeholder="test">
-                                            <option>- Pilih Berdasarkan apa- </option>
+                                        <label for="report_type">Laporan Berdasarkan</label>
+                                        <select id="report_type" name="report_type" class="form-control">
+                                            <option value="">- Pilih Berdasarkan apa -</option>
+                                            <option value="pokok">Pokok</option>
                                             <option value="weight">Berat</option>
+                                            <option value="status">Status</option>
+                                            <option value="blok_status">Blok + Status</option>
                                         </select>
                                     </div>
                                     <div class="col-md">
@@ -116,22 +118,9 @@
                                 </div>
                                 <div class="card-body">
                                     <table class="table table-striped" id="reportTable"
-                                        style="width: 100%; text-align: center;">
-                                        <thead>
-                                            <tr>
-                                                <th>Year-Month</th>
-                                                <th>PT</th>
-                                                <th>Estate</th>
-                                                <th>Blok</th>
-                                                <th>Status</th>
-                                                <th>Jumlah Tanaman</th>
-                                                <th>Total Weight</th>
-                                                <th>Average Tandan Weight</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="dataResults">
-                                            <!-- Data will be inserted here via JavaScript -->
-                                        </tbody>
+                                        style="width:100%; text-align:center;">
+                                        <thead id="reportTableHeader"></thead>
+                                        <tbody id="dataResults"></tbody>
                                     </table>
                                 </div>
                             </div>
@@ -150,55 +139,73 @@
     <script src="<?= base_url('/assets/extensions/simple-datatables/umd/simple-datatables.js'); ?>"></script>
     <script src="<?= base_url('/assets/static/js/pages/simple-datatables.js'); ?>"></script>
     <script>
-        const baseUrl = '<?= base_url(); ?>';
+        const baseUrl = '<?= base_url() ?>';
 
+        // 1) Bangun <th> berdasarkan tipe
+        function renderTableHeader(type) {
+            const map = {
+                pokok: ['Year-Month', 'PT', 'Estate', 'Jumlah Tanaman'],
+                weight: ['Year-Month', 'PT', 'Estate', 'Jumlah Tanaman', 'Total Weight', 'Average Tandan Weight'],
+                status: ['Year-Month', 'PT', 'Estate', 'Status', 'Jumlah Tanaman'],
+                blok_status: ['Year-Month', 'PT', 'Estate', 'Blok', 'Status', 'Jumlah Tanaman']
+            };
+            const headers = map[type] || [];
+            const $tr = $('<tr>');
+            headers.forEach(h => $tr.append(`<th>${h}</th>`));
+            $('#reportTableHeader').html($tr);
+        }
+
+        // 2) Ambil data & render tabel
         function fetchReportData() {
             $('#download-buttons').hide();
-
             const start_date = $('#start_date').val();
             const end_date = $('#end_date').val();
             const report_type = $('#report_type').val();
 
-            $.ajax({
-                url: `${baseUrl}laporan/fetchReportData`,
-                type: 'GET',
-                data: {
+            $.getJSON(`${baseUrl}laporan/fetchReportData`, {
                     start_date,
                     end_date,
                     report_type
-                },
-                dataType: 'json',
-                success(response) {
-                    $('#dataResults').empty();
+                })
+                .done(response => {
+                    renderTableHeader(report_type);
+                    const $body = $('#dataResults').empty();
 
                     if (!response.length) {
-                        $('#dataResults').append(
-                            '<tr><td colspan="8" class="text-center">Tidak ada data</td></tr>'
-                        );
-                    } else {
-                        response.forEach(d => {
-                            // CHANGED ↓↓
-                            const weight = parseFloat(d.TotalWeight) || 0; // <!-- CHANGED -->
-                            const avg = d.AverageTandan != null ?
-                                (parseFloat(d.AverageTandan) || 0).toFixed(2) + ' kg' // <!-- CHANGED -->
-                                :
-                                '-';
-
-                            $('#dataResults').append(`
-                <tr>
-                  <td>${d.MonthYear}</td>
-                  <td>${d.PT}</td>
-                  <td>${d.Estate}</td>
-                  <td>${d.Block}</td>
-                  <td>${d.Status}</td>
-                  <td>${d.jumlah_tanaman}</td>
-                  <td>${weight.toFixed(2)} kg</td>
-                  <td>${avg}</td>
-                </tr>
-              `);
-                        });
+                        const colspan = $('#reportTableHeader th').length || 1;
+                        $body.html(`<tr><td colspan="${colspan}" class="text-center">Tidak ada data</td></tr>`);
+                        return;
                     }
 
+                    response.forEach(d => {
+                        let cells;
+                        switch (report_type) {
+                            case 'pokok':
+                                cells = [d.MonthYear, d.PT, d.Estate, d.jumlah_tanaman];
+                                break;
+                            case 'weight':
+                                cells = [
+                                    d.MonthYear, d.PT, d.Estate,
+                                    d.jumlah_tanaman,
+                                    parseFloat(d.TotalWeight).toFixed(2) + ' kg',
+                                    parseFloat(d.AverageTandan).toFixed(2) + ' kg'
+                                ];
+                                break;
+                            case 'status':
+                                cells = [d.MonthYear, d.PT, d.Estate, d.Status, d.jumlah_tanaman];
+                                break;
+                            case 'blok_status':
+                                cells = [d.MonthYear, d.PT, d.Estate, d.Block, d.Status, d.jumlah_tanaman];
+                                break;
+                            default:
+                                cells = [d.MonthYear, d.PT, d.Estate];
+                        }
+                        const $tr = $('<tr>');
+                        cells.forEach(c => $tr.append(`<td>${c}</td>`));
+                        $body.append($tr);
+                    });
+
+                    // update tombol download
                     const params = $.param({
                         start_date,
                         end_date,
@@ -207,11 +214,8 @@
                     $('#download-excel').attr('href', `${baseUrl}laporan/panen-bulanan/downloadExcel?${params}`);
                     $('#download-pdf').attr('href', `${baseUrl}laporan/panen-bulanan/downloadPdf?${params}`);
                     $('#download-buttons').show();
-                },
-                error() {
-                    alert('Gagal mengambil data laporan.');
-                }
-            });
+                })
+                .fail(() => alert('Gagal mengambil data laporan.'));
         }
 
         $(function() {
