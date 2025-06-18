@@ -6,10 +6,27 @@ use CodeIgniter\Model;
 
 class TanamanModel extends Model
 {
-    protected $table = 'tanaman';
-    protected $primaryKey = 'tanaman_id';
-    protected $allowedFields = ['tgl_mulai_identifikasi', 'hs_id', 'rfid_tanaman', 'latitude_tanam', 'longitude_tanam', 'no_titik_tanam', 'status_id', 'sister', 'is_loses', 'losses_id', 'deskripsi_loses', 'tgl_akhir_identifikasi', 'minggu', 'nama_karyawan', 'npk'];
-    protected $returnType = 'array';
+    protected $table         = 'tanaman';
+    protected $primaryKey    = 'tanaman_id';
+    // removed 'is_loses'; added 'aktivitas_id'
+    protected $allowedFields = [
+        'tgl_mulai_identifikasi',
+        'hs_id',
+        'rfid_tanaman',
+        'latitude_tanam',
+        'longitude_tanam',
+        'no_titik_tanam',
+        'status_id',
+        'sister',
+        'losses_id',
+        'deskripsi_loses',
+        'tgl_akhir_identifikasi',
+        'minggu',
+        'nama_karyawan',
+        'npk',
+        'aktivitas_id',
+    ];
+    protected $returnType    = 'array';
 
     public function getNoTitikTanamData($noTitikTanam, $hsId)
     {
@@ -53,10 +70,8 @@ class TanamanModel extends Model
         return $activeCount > 0;
     }
 
-    // Fetch the maximum sister and active count based on latitude, longitude, or no_titik_tanam
     public function fetchLatestSisterForTitikTanam($latitude, $longitude, $noTitikTanam, $hsId)
     {
-        // Fetch the max sister value
         $maxSister = $this->selectMax('sister')
             ->where('latitude_tanam', $latitude)
             ->where('longitude_tanam', $longitude)
@@ -64,7 +79,6 @@ class TanamanModel extends Model
             ->where('hs_id', $hsId)
             ->first()['sister'] ?? 0;
 
-        // Count active records
         $activeCount = $this->where('tgl_akhir_identifikasi', null)
             ->where('latitude_tanam', $latitude)
             ->where('longitude_tanam', $longitude)
@@ -72,15 +86,17 @@ class TanamanModel extends Model
             ->where('hs_id', $hsId)
             ->countAllResults() ?? 0;
 
-        return ['max_sister' => $maxSister, 'active_count' => $activeCount];
+        return [
+            'max_sister'   => $maxSister,
+            'active_count' => $activeCount,
+        ];
     }
 
-    // Method to update the tanaman data based on no_titik_tanam and hs_id
     public function updateTanamanData($noTitikTanam, $hsId, $index, $updateData)
     {
         return $this->where('no_titik_tanam', $noTitikTanam)
-            ->where('hs_id', $hsId) // Filter by hs_id as well
-            ->where('tanaman_id', $index) // Assuming the index corresponds to tanaman_id
+            ->where('hs_id', $hsId)
+            ->where('tanaman_id', $index)
             ->set($updateData)
             ->update();
     }
