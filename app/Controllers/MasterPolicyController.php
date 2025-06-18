@@ -52,22 +52,28 @@ class MasterPolicyController extends ResourceController
     public function create()
     {
         $json = $this->request->getJSON();
-
-        if (!$json) {
+        if (! $json) {
             return $this->fail('Invalid JSON', 400);
         }
 
+        // Coerce empty/absent fields to NULL
+        $baru  = (isset($json->baru)  && $json->baru  !== '') ? $json->baru  : null;
+        $start = (isset($json->start) && $json->start !== '') ? $json->start : null;
+
         $policyData = [
-            'deskripsi'    => $json->deskripsi ?? '',
-            'satuan'       => $json->satuan ?? '',
-            'lama'         => $json->lama ?? '',
-            'akhir'        => $json->akhir ?? '',
-            'baru'         => $json->baru ?? '',
-            'start'        => $json->start ?? ''
+            'deskripsi' => $json->deskripsi ?? '',
+            'satuan'    => $json->satuan    ?? '',
+            'lama'      => $json->lama      ?? null,
+            'akhir'     => $json->akhir     ?? null,
+            'baru'      => $baru,
+            'start'     => $start,
         ];
 
         if ($this->model->insert($policyData)) {
-            return $this->respondCreated(['message' => 'Kebijakan berhasil ditambahkan', 'success' => true]);
+            return $this->respondCreated([
+                'message' => 'Kebijakan berhasil ditambahkan',
+                'success' => true,
+            ]);
         } else {
             return $this->failServerError('Gagal menambahkan kebijakan');
         }
@@ -84,22 +90,28 @@ class MasterPolicyController extends ResourceController
     public function update($policy_id = null)
     {
         $json = $this->request->getJSON();
-        if (!$json) {
+        if (! $json) {
             return $this->fail('Invalid JSON', 400);
         }
 
-        $model = new PolicyModel();
+        // Same null‐coercion logic
+        $baru  = (isset($json->baru)  && $json->baru  !== '') ? $json->baru  : null;
+        $start = (isset($json->start) && $json->start !== '') ? $json->start : null;
+
         $data = [
-            'deskripsi' => $json->deskripsi,
-            'satuan' => $json->satuan,
-            'lama' => $json->lama,
-            'akhir' => $json->akhir,
-            'baru' => $json->baru,
-            'start' => $json->start,
+            'deskripsi' => $json->deskripsi ?? '',
+            'satuan'    => $json->satuan    ?? '',
+            'lama'      => $json->lama      ?? null,
+            'akhir'     => $json->akhir     ?? null,
+            'baru'      => $baru,
+            'start'     => $start,
         ];
 
-        if ($model->update($policy_id, $data)) {
-            return $this->respondUpdated(['message' => 'Kebijakan berhasil diupdate', 'success' => true]);
+        if ($this->model->update($policy_id, $data)) {
+            return $this->respondUpdated([
+                'message' => 'Kebijakan berhasil diupdate',
+                'success' => true,
+            ]);
         } else {
             return $this->failServerError('Gagal mengupdate kebijakan');
         }
