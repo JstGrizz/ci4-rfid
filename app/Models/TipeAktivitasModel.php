@@ -6,63 +6,39 @@ use CodeIgniter\Model;
 
 class TipeAktivitasModel extends Model
 {
-    protected $table         = 'tipe_aktivitas';  // Name of the table
-    protected $primaryKey    = 'aktivitas_id';    // Primary key
-    protected $allowedFields = ['aktivitas_id', 'aktivitas_name'];  // Fields to be used
-    protected $returnType    = 'array';  // Data type to be returned (array)
+    protected $table = 'tipe_aktivitas'; // The table name
+    protected $primaryKey = 'aktivitas_id'; // The primary key of the table
+    protected $allowedFields = ['nama_aktivitas']; // Fields that are allowed for insert/update
 
-    /**
-     * Get all activities
-     * 
-     * @return array
-     */
-    public function getAllAktivitas()
+    protected $returnType = 'array'; // The return type for this model
+
+    // Get all Tipe Aktivitas
+    public function getAll()
     {
-        return $this->findAll();  // Get all records
+        return $this->findAll();
     }
 
-    /**
-     * Get an activity by ID
-     * 
-     * @param int $id
-     * @return array|null
-     */
-    public function getAktivitasById($id)
+    // Get a single Tipe Aktivitas by its ID
+    public function getById($id)
     {
-        return $this->where('aktivitas_id', $id)->first();  // Fetch a record by ID
+        return $this->find($id);
     }
 
-    /**
-     * Add a new activity
-     * 
-     * @param array $data
-     * @return bool
-     */
-    public function addAktivitas($data)
+    // Insert a new Tipe Aktivitas
+    public function insertTipeAktivitas($data)
     {
-        return $this->insert($data);  // Insert a new record
+        return $this->insert($data);
     }
 
-    /**
-     * Update an activity by ID
-     * 
-     * @param int $id
-     * @param array $data
-     * @return bool
-     */
-    public function updateAktivitas($id, $data)
+    // Update an existing Tipe Aktivitas by its ID
+    public function updateTipeAktivitas($id, $data)
     {
-        return $this->update($id, $data);  // Update the record
+        return $this->update($id, $data);
     }
 
-    /**
-     * Delete an activity by ID
-     * 
-     * @param int $id
-     * @return bool
-     */
-    public function deleteAktivitas($id)
+    // Delete a Tipe Aktivitas by its ID
+    public function deleteTipeAktivitas($id)
     {
-        return $this->delete($id);  // Delete a record by ID
+        return $this->delete($id);
     }
 }

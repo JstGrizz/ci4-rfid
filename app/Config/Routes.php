@@ -164,6 +164,18 @@ $routes->group('', ['filter' => 'authFilter'], function ($routes) {
     $routes->delete('/master-status/(:segment)', 'MasterStatusController::delete/$1'); // Delete action
 
     #--------------------------------------------------------------------
+    # ADMIN MASTER TIPE AKTIVITAS
+    #--------------------------------------------------------------------
+    $routes->get('/master-tipe-aktivitas', 'MasterTipeAktivitasController::index');
+    $routes->get('/master-tipe-aktivitas/data', 'MasterTipeAktivitasController::showAll');
+    $routes->get('/master-tipe-aktivitas/data/(:segment)', 'MasterTipeAktivitasController::show/$1');
+    $routes->get('/master-tipe-aktivitas/add', 'MasterTipeAktivitasController::add');
+    $routes->post('/master-tipe-aktivitas/create', 'MasterTipeAktivitasController::create');
+    $routes->get('/master-tipe-aktivitas/edit/(:segment)', 'MasterTipeAktivitasController::edit/$1');
+    $routes->post('/master-tipe-aktivitas/update/(:segment)', 'MasterTipeAktivitasController::update/$1');
+    $routes->delete('/master-tipe-aktivitas/(:segment)', 'MasterTipeAktivitasController::delete/$1');
+
+    #--------------------------------------------------------------------
     # ADMIN HECTARE STATEMENT
     #--------------------------------------------------------------------
     $routes->get('/hectare-statement', 'HectareStatementController::index');
@@ -181,15 +193,16 @@ $routes->group('', ['filter' => 'authFilter'], function ($routes) {
     $routes->delete('/hectare-statement/(:segment)', 'HectareStatementController::delete/$1'); // Delete action
 
     #--------------------------------------------------------------------
-    # IDENTIFIKASI TANAMAN - NEW
+    # IDENTIFIKASI TANAMAN - Seleksi
     #--------------------------------------------------------------------
-    $routes->get('/identifikasi-tanaman/new', 'IdentifikasiTanamanController::new');
+    $routes->get('/identifikasi-tanaman/seleksi', 'IdentifikasiTanamanController::seleksi');
     $routes->get('identifikasi-tanaman/getBloksByPtEstateId/(:num)', 'IdentifikasiTanamanController::getBloksByPtEstateId/$1');
     $routes->get('identifikasi-tanaman/getHectareStatementByPtEstateIdAndBlockId/(:num)/(:num)', 'IdentifikasiTanamanController::getHectareStatementByPtEstateIdAndBlockId/$1/$2');
     $routes->get('identifikasi-tanaman/getNoTitikTanamData/(:num)/(:num)/(:num)', 'IdentifikasiTanamanController::getNoTitikTanamData/$1/$2/$3');
     $routes->get('identifikasi-tanaman/getTanamanStatus/(:segment)/(:segment)/(:segment)/(:segment)/(:segment)', 'IdentifikasiTanamanController::getTanamanStatus/$1/$2/$3/$4/$5');
-    $routes->get('identifikasi-tanaman/fetchSister/(:segment)/(:segment)/(:segment)', 'IdentifikasiTanamanController::fetchSister/$1/$2/$3');
-    $routes->post('identifikasi-tanaman/insertTanamanData', 'IdentifikasiTanamanController::insertTanamanData');
+    $routes->get('identifikasi-tanaman/fetchSister', 'IdentifikasiTanamanController::fetchSister');
+    $routes->post('identifikasi-tanaman/seleksi/insert', 'IdentifikasiTanamanController::insertTanamanData');
+
 
     #--------------------------------------------------------------------
     # IDENTIFIKASI TANAMAN - UPDATE
@@ -236,7 +249,7 @@ $routes->group('', ['filter' => 'authFilter'], function ($routes) {
     # LAPORAN HISTORY LOSSES
     #--------------------------------------------------------------------
 
-    $routes->get('laporan/history-losses', 'LaporanController::laporanHistoryLosses');
+    $routes->get('laporan/identifikasi-tanaman', 'LaporanController::laporanIdentifikasiTanaman');
     $routes->get('laporan/history-losses/data', 'LaporanController::fetchHistoryLossesReport');
     $routes->get('laporan/history-losses/data-all', 'LaporanController::fetchAllHistoryLossesReport');
     $routes->get('laporan/history-losses/downloadExcel', 'LaporanController::downloadHistoryLossesExcel');

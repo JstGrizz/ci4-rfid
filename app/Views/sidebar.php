@@ -4,7 +4,6 @@ $currentUri1 = $request->getUri()->getSegment(1);
 $currentUri2 = $request->getUri()->getSegment(2);
 ?>
 
-
 <div id="sidebar">
     <div class="sidebar-wrapper active">
         <div class="sidebar-header position-relative">
@@ -36,7 +35,7 @@ $currentUri2 = $request->getUri()->getSegment(2);
                         aria-hidden="true" role="img" class="iconify iconify--mdi" width="20" height="20"
                         preserveAspectRatio="xMidYMid meet" viewBox="0 0 24 24">
                         <path fill="currentColor"
-                            d="m17.75 4.09l-2.53 1.94l.91 3.06l-2.63-1.81l-2.63 1.81l.91-3.06l-2.53-1.94L12.44 4l1.06-3l1.06 3l3.19.09m3.5 6.91l-1.64 1.25l.59 1.98l-1.7-1.17l-1.7 1.17l.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95l2.06.05m-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85c-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14c.4-.4.82-.76 1.27-1.08c.75-.53 1.93.36 1.85 1.19c-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82c-2.81 3.14-2.7 7.96.31 10.98c3.02 3.01 7.84 3.12 10.98.31Z">
+                            d="m17.75 4.09l-2.53 1.94l.91 3.06l-2.63-1.81l-2.63 1.81l.91-3.06l-2.53-1.94L12.44 4l1.06-3m3.5 6.91l-1.64 1.25l.59 1.98l-1.7-1.17l-1.7 1.17l.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95l2.06.05m-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85c-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14c.4-.4.82-.76 1.27-1.08c.75-.53 1.93.36 1.85 1.19c-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82c-2.81 3.14-2.7 7.96.31 10.98c3.02 3.01 7.84 3.12 10.98.31Z">
                         </path>
                     </svg>
                 </div>
@@ -57,7 +56,7 @@ $currentUri2 = $request->getUri()->getSegment(2);
                     </a>
                 </li>
                 <li
-                    class="sidebar-item has-sub <?= in_array($currentUri1, ['master-lokasi', 'master-karyawan', 'group-karyawan', 'master-user', 'master-policy', 'master-losses', 'pt-estate', 'master-blok', 'member-group', 'master-status']) ? 'active' : ''; ?>">
+                    class="sidebar-item has-sub <?= in_array($currentUri1, ['master-lokasi', 'master-karyawan', 'group-karyawan', 'master-user', 'master-policy', 'master-losses', 'pt-estate', 'master-blok', 'member-group', 'master-status', 'master-tipe-aktivitas']) ? 'active' : ''; ?>">
                     <a href="#" class="sidebar-link">
                         <i class="bi bi-file-earmark-spreadsheet-fill"></i>
                         <span>Master Data</span>
@@ -91,6 +90,11 @@ $currentUri2 = $request->getUri()->getSegment(2);
                         <li class="submenu-item <?= ($currentUri1 === 'master-status') ? 'active' : ''; ?>">
                             <a href="<?= base_url('master-status'); ?>" class="submenu-link">Master Status</a>
                         </li>
+                        <!-- Added Master Tipe Aktivitas Menu -->
+                        <li class="submenu-item <?= ($currentUri1 === 'master-tipe-aktivitas') ? 'active' : ''; ?>">
+                            <a href="<?= base_url('master-tipe-aktivitas'); ?>" class="submenu-link">Master Tipe
+                                Aktivitas</a>
+                        </li>
                     </ul>
                 </li>
                 <li class="sidebar-item <?= ($currentUri1 === 'hectare-statement') ? 'active' : ''; ?>">
@@ -107,8 +111,12 @@ $currentUri2 = $request->getUri()->getSegment(2);
                     </a>
                     <ul class="submenu">
                         <li
-                            class="submenu-item <?= ($currentUri1 === 'identifikasi-tanaman' && $currentUri2 === 'new') ? 'active' : ''; ?>">
-                            <a href="<?= base_url('identifikasi-tanaman/new'); ?>" class="submenu-link">New</a>
+                            class="submenu-item <?= ($currentUri1 === 'identifikasi-tanaman' && $currentUri2 === 'seleksi') ? 'active' : ''; ?>">
+                            <a href="<?= base_url('identifikasi-tanaman/seleksi'); ?>" class="submenu-link">Seleksi</a>
+                        </li>
+                        <li
+                            class="submenu-item <?= ($currentUri1 === 'identifikasi-tanaman' && $currentUri2 === 'shooting') ? 'active' : ''; ?>">
+                            <a href="<?= base_url('identifikasi-tanaman/shooting'); ?>" class="submenu-link">Update</a>
                         </li>
                         <li
                             class="submenu-item <?= ($currentUri1 === 'identifikasi-tanaman' && $currentUri2 === 'update') ? 'active' : ''; ?>">
@@ -139,9 +147,9 @@ $currentUri2 = $request->getUri()->getSegment(2);
                                 Masa Panen</a>
                         </li>
                         <li
-                            class="submenu-item <?= ($currentUri1 === 'laporan' && $currentUri2 === 'history-losses') ? 'active' : ''; ?>">
-                            <a href="<?= base_url('laporan/history-losses'); ?>" class="submenu-link">History
-                                Losses</a>
+                            class="submenu-item <?= ($currentUri1 === 'laporan' && $currentUri2 === 'identifikasi-tanaman') ? 'active' : ''; ?>">
+                            <a href="<?= base_url('laporan/identifikasi-tanaman'); ?>" class="submenu-link">Identifikasi
+                                Tanaman</a>
                         </li>
                     </ul>
                 </li>
