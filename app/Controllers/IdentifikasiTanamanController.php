@@ -321,7 +321,7 @@ class IdentifikasiTanamanController extends ResourceController
         return null;  // Kembalikan null jika tidak ada record yang ditemukan
     }
 
-    public function insertTanamanData()
+    public function insertTanamanDataSeleksi()
     {
         // Ambil data form dari request POST
         $pt_estate_id = $this->request->getPost('pt_estate');
@@ -408,6 +408,91 @@ class IdentifikasiTanamanController extends ResourceController
         }
     }
 
+    public function insertTanamanDataShooting()
+    {
+        $data = $this->request->getPost();
+
+        // Get the necessary data from the request
+        $ptEstateId = $data['pt_estate'] ?? null;
+        $blokId = $data['blok_id'] ?? null;
+        $tanamanIds = $data['tanaman_id'] ?? [];
+        $rfidTanamanArray = $data['rfid_tanaman'] ?? [];
+        $newRfidArray = $data['new_rfid'] ?? [];
+        $updateRfidCheckboxes = $data['update_rfid'] ?? [];
+        $nama_karyawan = $this->request->getPost('nama');
+        $npk = $this->request->getPost('npk');
+
+        // Validate necessary fields
+        if (!$ptEstateId || !$blokId || empty($tanamanIds)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Required fields are missing.']);
+        }
+
+        // Get the hsId based on ptEstateId and blokId
+        $hsId = $this->getHsIdByPtEstateAndBlok($ptEstateId, $blokId);
+
+        if ($hsId === null) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Pernyataan Hektar tidak ditemukan.']);
+        }
+
+        $tanamanModel = new TanamanModel();
+        $aktivitasModel = new TipeAktivitasModel();
+        $currentTime = date('Y-m-d H:i:s');
+
+        // Fetch 'shooting' aktivitas_id
+        $shootingAktivitas = $aktivitasModel->where('LOWER(nama_aktivitas)', 'shooting')->first();
+        if (!$shootingAktivitas) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Aktivitas Shooting tidak ditemukan.']);
+        }
+        $shootingAktivitasId = $shootingAktivitas['aktivitas_id'];
+
+        // Loop through each selected tanaman and process
+        foreach ($tanamanIds as $index => $tanamanIdToUpdate) {
+            // Only process if the 'update_rfid' checkbox is checked
+            if (isset($updateRfidCheckboxes[$index]) && $updateRfidCheckboxes[$index] === 'on') {
+                $currentRfid = $rfidTanamanArray[$index] ?? null;
+
+                if (empty($tanamanIdToUpdate)) {
+                    continue; // Skip if Tanaman ID is empty
+                }
+
+                // Get the existing tanaman data
+                $tanamanData = $tanamanModel->find($tanamanIdToUpdate);
+
+                // Check if RFID update is needed
+                if ($currentRfid) {
+                    // If RFID has been updated, set the current date as the end date of the previous identification
+                    $tanamanData['rfid_tanaman'] = $currentRfid;
+                    $tanamanData['tgl_akhir_identifikasi'] = $currentTime; // Set the end identification date for the old record
+                }
+
+                // Update the original record
+                $tanamanModel->update($tanamanIdToUpdate, $tanamanData);
+
+                // Prepare data for the new 'shooting' activity record
+                $newTanamanData = [
+                    'rfid_tanaman' => $newRfidArray[$index] ?? $currentRfid, // Use new RFID if provided
+                    'pt_estate_id' => $ptEstateId,
+                    'blok_id' => $blokId,
+                    'hs_id' => $hsId,
+                    'aktivitas_id' => $shootingAktivitasId,  // Set the aktivitas_id to 'shooting'
+                    'no_titik_tanam' => $tanamanData['no_titik_tanam'],
+                    'longitude_tanam' => $tanamanData['longitude_tanam'],
+                    'latitude_tanam' => $tanamanData['latitude_tanam'],
+                    'status_id' => $tanamanData['status_id'], // Keep the original status_id
+                    'sister' => $tanamanData['sister'],  // Retain sister value from the original record
+                    'tgl_mulai_identifikasi' => $currentTime, // Set the start identification date
+                    'tgl_akhir_identifikasi' => null, // New record should have no end date yet
+                    'nama_karyawan' => $nama_karyawan, // Add employee name to the new record
+                    'npk' => $npk, // Add NPK to the new record
+                ];
+
+                // Insert the new record for shooting activity
+                $tanamanModel->insert($newTanamanData);
+            }
+        }
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Data berhasil diperbarui dan ditambahkan.']);
+    }
 
     public function getActiveTanamanDataSeleksi($noTitikTanam)
     {
