@@ -587,7 +587,6 @@
         }
     }
 
-    // Function to auto-fill Tanaman Data for Shooting Activity when No Titik Tanam is entered
     function autoFillTanamanData() {
         const noTitikTanam = document.getElementById('no_titik_tanam_shooting').value;
         const ptEstateId = document.getElementById('pt_estate').value; // Get PT Estate ID
@@ -622,32 +621,37 @@
 
                         data.tanaman.forEach((tanaman, index) => {
                             const formHtml = `
-                            <div class="card">
-                                <div class="card-header">
-                                    <h4 class="card-title">Tanaman ${index + 1}</h4>
+                        <div class="card">
+                            <div class="card-header">
+                                <h4 class="card-title">Tanaman ${index + 1}</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label>RFID</label>
+                                    <input type="text" class="form-control" name="rfid_tanaman[${index}]"
+                                        id="rfid_tanaman_${index}" value="${tanaman.rfid_tanaman}" readonly />
+                                    <input type="hidden" name="tanaman_id[${index}]" value="${tanaman.tanaman_id}" />
                                 </div>
-                                <div class="card-body">
-                                    <div class="form-group">
-                                        <label>RFID</label>
-                                        <input type="text" class="form-control" name="rfid_tanaman[${index}]"
-                                            id="rfid_tanaman_${index}" value="${tanaman.rfid_tanaman}" readonly />
-                                        <input type="hidden" name="tanaman_id[${index}]" value="${tanaman.tanaman_id}" />
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Perbarui RFID?</label>
-                                        <input type="checkbox" class="form-check-input" id="update_rfid_${index}" name="update_rfid[${index}]" onchange="toggleNewRfid(${index})" />
-                                        <div id="updateRfidFields_${index}" style="display: none;">
-                                            <input type="text" class="form-control" name="new_rfid[${index}]"
-                                                id="update_rfid_tanaman_${index}" placeholder="Masukkan RFID baru" />
-                                        </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Sister</label>
-                                        <input type="text" class="form-control" name="sister[${index}]"
-                                            id="sister_${index}" value="${tanaman.sister}" readonly />
+                                <div class="form-group">
+                                    <label>Perbarui RFID?</label>
+                                    <input type="checkbox" class="form-check-input" id="update_rfid_${index}" name="update_rfid[${index}]" onchange="toggleNewRfid(${index})" />
+                                    <div id="updateRfidFields_${index}" style="display: none;">
+                                        <input type="text" class="form-control" name="new_rfid[${index}]"
+                                            id="update_rfid_tanaman_${index}" placeholder="Masukkan RFID baru" />
                                     </div>
                                 </div>
-                            </div>`;
+                                <div class="form-group">
+                                    <label>Sister</label>
+                                    <input type="text" class="form-control" name="sister[${index}]"
+                                        id="sister_${index}" value="${tanaman.sister}" readonly />
+                                </div>
+                                <div class="form-group">
+                                    <label>Status</label>
+                                    <input type="text" class="form-control" name="status[${index}]"
+                                        id="status_${index}" value="${tanaman.nama_status}" readonly />
+                                </div>
+                            </div>
+                        </div>`;
                             tanamanContainer.innerHTML += formHtml;
                         });
                     } else {
