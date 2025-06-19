@@ -330,12 +330,12 @@ class IdentifikasiTanamanController extends ResourceController
         $latitude = $this->request->getPost('latitude');
         $longitude = $this->request->getPost('longitude');
         $no_titik_tanam = $this->request->getPost('no_titik_tanam');
-        $status_name = $this->request->getPost('status');  // Get status name (text)
+        $status_id = $this->request->getPost('status');  // Get status_id from frontend
         $sister = $this->request->getPost('sister_ke');
         $week = $this->request->getPost('week'); // Week from the form
         $nama_karyawan = $this->request->getPost('nama');
         $npk = $this->request->getPost('npk');
-        $aktivitas_name = $this->request->getPost('tipe_aktivitas'); // Get activity name (text)
+        $aktivitas_id = $this->request->getPost('tipe_aktivitas'); // Get aktivitas_id from frontend
 
         // Ambil hs_id berdasarkan pt_estate_id dan blok_id
         $hs_id = $this->getHsIdByPtEstateAndBlok($pt_estate_id, $blok_id);
@@ -357,46 +357,27 @@ class IdentifikasiTanamanController extends ResourceController
             }
         }
 
-        // Fetch all data from 'status' and 'tipe_aktivitas' tables
-        $statusModel = new StatusModel(); // Assuming you have a StatusModel
-        $aktivitasModel = new TipeAktivitasModel(); // Assuming you have an AktivitasModel
+        // Fetch the status_name based on status_id
+        $statusModel = new StatusModel();
+        $status = $statusModel->find($status_id); // Get status by ID
+        $status_name = $status ? $status['nama_status'] : null;
 
-        // Fetch all status records
-        $allStatuses = $statusModel->findAll();
+        // Fetch the aktivitas_name based on aktivitas_id
+        $aktivitasModel = new TipeAktivitasModel();
+        $aktivitas = $aktivitasModel->find($aktivitas_id); // Get aktivitas by ID
+        $aktivitas_name = $aktivitas ? $aktivitas['nama_aktivitas'] : null;
 
-        // Fetch all aktivitas records
-        $allAktivitas = $aktivitasModel->findAll();
-
-        // Determine the 'minggu' value based on the activity type and status
-        $minggu_tanam = 0; // Default value if no condition matches
-        $status_id = null;
-        $aktivitas_id = null;
-
-        // Loop through all statuses and aktivitas to match the names
-        foreach ($allStatuses as $status) {
-            if (strtolower($status['nama_status']) === strtolower($status_name)) {
-                $status_id = $status['status_id'];
-                break;
-            }
-        }
-
-        foreach ($allAktivitas as $aktivitas) {
-            if (strtolower($aktivitas['nama_aktivitas']) === strtolower($aktivitas_name)) {
-                $aktivitas_id = $aktivitas['aktivitas_id'];
-                break;
-            }
-        }
-
-        // If we couldn't find the correct status or aktivitas, return an error
-        if ($status_id === null || $aktivitas_id === null) {
+        // If either the status_name or aktivitas_name is not found, return an error
+        if (!$status_name || !$aktivitas_name) {
             return $this->response->setJSON(['success' => false, 'error' => 'Tipe Aktivitas atau Status tidak valid.']);
         }
 
-        // Set 'minggu_tanam' value based on conditions
-        if (strtolower($aktivitas_name) === 'seleksi' && strtolower($status_name) === 'pc' && $sister === 0) {
+        // Check if 'aktivitas_name' is 'seleksi', 'status_name' is 'pc', and sister is 0
+        // Convert both status_name and aktivitas_name to lowercase for comparison
+        if (strtolower($aktivitas_name) === 'seleksi' && strtolower($status_name) === 'pc' && (int)$sister === 0) {
             $minggu_tanam = $week; // If 'seleksi' and 'pc' and sister is 0, use the week value
         } else {
-            $minggu_tanam = 0; // Default value if conditions are not met
+            $minggu_tanam = 0;
         }
 
         // Siapkan data untuk dimasukkan ke dalam tabel 'tanaman'

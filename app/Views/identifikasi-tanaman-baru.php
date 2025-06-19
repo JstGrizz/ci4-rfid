@@ -374,8 +374,31 @@
                     })
                     .catch(error => console.error('Error fetching status options:', error));
             } else {
-                statusSelect.innerHTML =
-                    '<option value="1">PC</option>';
+                // Fetch all statuses from the Master Status table
+                fetch('<?= base_url('master-status/data'); ?>')
+                    .then(response => response.json())
+                    .then(data => {
+                        // Clear existing options before adding new ones
+                        statusSelect.innerHTML = '<option value="">Pilih Status</option>';
+
+                        if (data.status) { // Check if 'status' is available in the response
+                            // Loop through all statuses and add them as options
+                            data.status.forEach(
+                                status => { // Change to data.status because the response key is 'status'
+                                    const option = document.createElement('option');
+                                    // Check if the status is 'pc' regardless of case
+                                    if (status.nama_status.toLowerCase() === 'pc') {
+                                        option.value = status.status_id; // Set the value as status_id
+                                        option.textContent = status
+                                            .nama_status; // Display the nama_status as the label
+                                        statusSelect.appendChild(option);
+                                    }
+                                });
+                        } else {
+                            alert('No statuses found'); // Show error if no statuses are found
+                        }
+                    })
+                    .catch(error => console.error('Error fetching master statuses:', error));
             }
         }
 
@@ -422,19 +445,17 @@
         function insertTanamanData() {
             const formData = new FormData(document.querySelector('form'));
 
-            // Get the selected 'aktivitas_name' and 'status_name' from dropdowns
+            // Get the selected 'aktivitas_id' and 'status_id' from dropdowns
             const aktivitasSelect = document.getElementById('tipe_aktivitas');
             const statusSelect = document.getElementById('status');
 
-            const aktivitasName = aktivitasSelect.options[aktivitasSelect.selectedIndex].text;
-            const statusName = statusSelect.options[statusSelect.selectedIndex].text;
+            // Get the IDs (aktivitas_id and status_id)
+            const aktivitasId = aktivitasSelect.value;
+            const statusId = statusSelect.value;
 
-            // Ensure that the 'aktivitas_id' and 'status_id' are correctly set based on text content
-            // We are not directly appending the IDs here, as the controller will handle the lookup
-
-            // Append 'nama_aktivitas' and 'nama_status' to the formData
-            formData.append('tipe_aktivitas', aktivitasName); // Send the name as the controller will fetch the id
-            formData.append('status', statusName); // Send the name as the controller will fetch the id
+            // Append 'aktivitas_id' and 'status_id' to the formData
+            formData.append('tipe_aktivitas', aktivitasId); // Send the ID instead of the name
+            formData.append('status', statusId); // Send the ID instead of the name
 
             // Send the form data to the backend
             fetch('<?= base_url('identifikasi-tanaman/insertTanamanData'); ?>', {
