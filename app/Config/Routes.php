@@ -208,7 +208,7 @@ $routes->group('', ['filter' => 'authFilter'], function ($routes) {
     # IDENTIFIKASI TANAMAN - UPDATE
     #--------------------------------------------------------------------
     $routes->get('identifikasi-tanaman/update', 'IdentifikasiTanamanController::viewEdit');
-    $routes->get('identifikasi-tanaman/getActiveTanamanData/(:num)', 'IdentifikasiTanamanController::getActiveTanamanData/$1');
+    $routes->get('identifikasi-tanaman/getActiveTanamanDataSeleksi/(:num)', 'IdentifikasiTanamanController::getActiveTanamanDataSeleksi/$1');
     $routes->get('identifikasi-tanaman/getLossesOptions', 'IdentifikasiTanamanController::getLossesOptions');
     $routes->post('identifikasi-tanaman/updateIdentifikasiTanaman', 'IdentifikasiTanamanController::updateIdentifikasiTanaman');
 

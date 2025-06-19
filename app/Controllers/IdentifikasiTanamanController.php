@@ -409,15 +409,56 @@ class IdentifikasiTanamanController extends ResourceController
     }
 
 
-    public function getActiveTanamanData($noTitikTanam)
+    public function getActiveTanamanDataSeleksi($noTitikTanam)
     {
+        // Logging the received parameters for debugging
+        log_message('info', 'Received request for getActiveTanamanDataSeleksi');
+        log_message('info', 'no_titik_tanam: ' . $noTitikTanam);
+
+        // Get ptEstateId and blokId from the request
+        $ptEstateId = $this->request->getVar('pt_estate_id'); // Assuming pt_estate_id is passed in the request
+        $blokId = $this->request->getVar('blok_id'); // Assuming blok_id is passed in the request
+
+        log_message('info', 'pt_estate_id: ' . $ptEstateId);
+        log_message('info', 'blok_id: ' . $blokId);
+
+        // Fetch all tipe_aktivitas from the database
+        $tipeAktivitasModel = new TipeAktivitasModel();
+        $tipeAktivitasData = $tipeAktivitasModel->findAll();
+
+        // Find the aktivitas_id where nama_aktivitas = 'seleksi'
+        $aktivitasId = null;
+        foreach ($tipeAktivitasData as $aktivitas) {
+            if (strtolower($aktivitas['nama_aktivitas']) === 'seleksi') {
+                $aktivitasId = $aktivitas['aktivitas_id'];
+                break;
+            }
+        }
+
+        if ($aktivitasId === null) {
+            // If no 'seleksi' activity is found, return an error
+            log_message('error', 'No tipe aktivitas found with nama_aktivitas = "seleksi"');
+            return $this->response->setJSON(['success' => false, 'error' => 'No tipe aktivitas "seleksi" found.']);
+        }
+
+        log_message('info', 'aktivitasId: ' . $aktivitasId);
+
+        // Get hsId based on ptEstateId and blokId
+        $hsId = $this->getHsIdByPtEstateAndBlok($ptEstateId, $blokId);
+        log_message('info', 'hsId: ' . $hsId);
+
+        // Load the TanamanModel
         $tanamanModel = new TanamanModel();
 
-        $activeTanaman = $tanamanModel->getNoActiveTanamData($noTitikTanam);
+        // Call the model method with noTitikTanam, hsId, and aktivitasId
+        $activeTanaman = $tanamanModel->getNoActiveTanamDataSeleksi($noTitikTanam, $hsId, $aktivitasId);
 
+        // Return the response
         if ($activeTanaman) {
+            log_message('info', 'Active Tanaman Data Found');
             return $this->response->setJSON(['success' => true, 'tanaman' => $activeTanaman]);
         } else {
+            log_message('info', 'No Active Tanaman Data Found');
             return $this->response->setJSON(['success' => false, 'error' => 'Tidak ada data tanaman aktif ditemukan.']);
         }
     }
