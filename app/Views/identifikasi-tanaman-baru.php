@@ -92,9 +92,14 @@
                                         onchange="toggleCards()">
                                         <option value="">- Pilih Tipe Aktivitas -</option>
                                         <?php foreach ($tipeAktivitas as $aktivitas): ?>
-                                            <option value="<?= $aktivitas['aktivitas_id']; ?>">
-                                                <?= $aktivitas['nama_aktivitas']; ?>
-                                            </option>
+                                            <?php
+                                            // Convert to lowercase to make comparison case-insensitive
+                                            $aktivitas_name = strtolower($aktivitas['nama_aktivitas']);
+                                            if ($aktivitas_name === 'seleksi' || $aktivitas_name === 'shooting'): ?>
+                                                <option value="<?= $aktivitas['aktivitas_id']; ?>">
+                                                    <?= $aktivitas['nama_aktivitas']; ?>
+                                                </option>
+                                            <?php endif; ?>
                                         <?php endforeach; ?>
                                     </select>
                                 </div>
@@ -493,22 +498,25 @@
             insertTanamanData();
         });
 
-
+        // Function to toggle visibility of cards and disable/enable RFID field based on activity type
         function toggleCards() {
-            const tipeAktivitas = document.getElementById('tipe_aktivitas').value;
+            const tipeAktivitasSelect = document.getElementById('tipe_aktivitas');
+            const tipeAktivitasText = tipeAktivitasSelect.options[tipeAktivitasSelect.selectedIndex].text
+                .toLowerCase(); // Get the text of the selected option
             const hectareStatementCard = document.getElementById('hectare-statement-card');
             const identifikasiTanamanCard = document.getElementById('identifikasi-tanaman-card');
             const rfidField = document.getElementById('rfid'); // Get the RFID field
 
             // Check if tipe aktivitas is selected
-            if (tipeAktivitas) {
+            if (tipeAktivitasSelect.value) { // Check if a value is selected (not empty option)
                 // Show the cards if tipe aktivitas is selected
                 hectareStatementCard.style.display = 'block';
                 identifikasiTanamanCard.style.display = 'block';
 
                 // If the selected tipe_aktivitas is 'seleksi', disable RFID field
-                if (tipeAktivitas.toLowerCase() === 'seleksi') {
+                if (tipeAktivitasText === 'seleksi') { // Compare with the text content
                     rfidField.disabled = true; // Disable the RFID input field
+                    rfidField.value = ''; // Optionally clear the RFID field when disabled
                 } else {
                     rfidField.disabled = false; // Enable the RFID input field
                 }
@@ -516,18 +524,17 @@
                 // Hide the cards if no tipe aktivitas is selected
                 hectareStatementCard.style.display = 'none';
                 identifikasiTanamanCard.style.display = 'none';
+                rfidField.disabled = false; // Ensure RFID is enabled if no activity is selected
             }
         }
-
-        document.querySelector('form').addEventListener('reset', function() {
-            toggleCards();
-        });
 
         // Add event listener to call toggleCards when tipe_aktivitas changes
         document.getElementById('tipe_aktivitas').addEventListener('change', toggleCards);
 
         // Call toggleCards on page load to check the initial state
-        document.addEventListener('DOMContentLoaded', toggleCards);
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleCards(); // Call it to ensure correct state on load
+        });
     </script>
 
     <script>
