@@ -424,11 +424,15 @@ class IdentifikasiTanamanController extends ResourceController
 
         // Validate necessary fields
         if (!$ptEstateId || !$blokId || empty($tanamanIds)) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Required fields are missing.']);
+            return $this->response->setJSON(['success' => false, 'message' => 'Beberapa data wajib belum terisi.']);
         }
+
+        // Log incoming data
+        log_message('info', 'InsertTanamanDataShooting - Incoming data: ' . json_encode($data));
 
         // Get the hsId based on ptEstateId and blokId
         $hsId = $this->getHsIdByPtEstateAndBlok($ptEstateId, $blokId);
+        log_message('info', 'hsId retrieved: ' . $hsId);
 
         if ($hsId === null) {
             return $this->response->setJSON(['success' => false, 'message' => 'Pernyataan Hektar tidak ditemukan.']);
@@ -444,51 +448,63 @@ class IdentifikasiTanamanController extends ResourceController
             return $this->response->setJSON(['success' => false, 'message' => 'Aktivitas Shooting tidak ditemukan.']);
         }
         $shootingAktivitasId = $shootingAktivitas['aktivitas_id'];
+        log_message('info', 'Aktivitas Shooting found, aktivitas_id: ' . $shootingAktivitasId);
 
-        // Loop through each selected tanaman and process
         foreach ($tanamanIds as $index => $tanamanIdToUpdate) {
-            // Only process if the 'update_rfid' checkbox is checked
-            if (isset($updateRfidCheckboxes[$index]) && $updateRfidCheckboxes[$index] === 'on') {
-                $currentRfid = $rfidTanamanArray[$index] ?? null;
-
-                if (empty($tanamanIdToUpdate)) {
-                    continue; // Skip if Tanaman ID is empty
-                }
-
-                // Get the existing tanaman data
-                $tanamanData = $tanamanModel->find($tanamanIdToUpdate);
-
-                // Check if RFID update is needed
-                if ($currentRfid) {
-                    // If RFID has been updated, set the current date as the end date of the previous identification
-                    $tanamanData['rfid_tanaman'] = $currentRfid;
-                    $tanamanData['tgl_akhir_identifikasi'] = $currentTime; // Set the end identification date for the old record
-                }
-
-                // Update the original record
-                $tanamanModel->update($tanamanIdToUpdate, $tanamanData);
-
-                // Prepare data for the new 'shooting' activity record
-                $newTanamanData = [
-                    'rfid_tanaman' => $newRfidArray[$index] ?? $currentRfid, // Use new RFID if provided
-                    'pt_estate_id' => $ptEstateId,
-                    'blok_id' => $blokId,
-                    'hs_id' => $hsId,
-                    'aktivitas_id' => $shootingAktivitasId,  // Set the aktivitas_id to 'shooting'
-                    'no_titik_tanam' => $tanamanData['no_titik_tanam'],
-                    'longitude_tanam' => $tanamanData['longitude_tanam'],
-                    'latitude_tanam' => $tanamanData['latitude_tanam'],
-                    'status_id' => $tanamanData['status_id'], // Keep the original status_id
-                    'sister' => $tanamanData['sister'],  // Retain sister value from the original record
-                    'tgl_mulai_identifikasi' => $currentTime, // Set the start identification date
-                    'tgl_akhir_identifikasi' => null, // New record should have no end date yet
-                    'nama_karyawan' => $nama_karyawan, // Add employee name to the new record
-                    'npk' => $npk, // Add NPK to the new record
-                ];
-
-                // Insert the new record for shooting activity
-                $tanamanModel->insert($newTanamanData);
+            if (! isset($updateRfidCheckboxes[$index]) || $updateRfidCheckboxes[$index] !== 'on') {
+                log_message('info', 'RFID update checkbox not checked for Tanaman ID: ' . $tanamanIdToUpdate);
+                continue;
             }
+
+            // This is the NEW RFID the user entered
+            $newRfidValue = trim($newRfidArray[$index] ?? '');
+
+            if (empty($tanamanIdToUpdate) || empty($newRfidValue)) {
+                log_message('info', 'No new RFID provided for Tanaman ID: ' . $tanamanIdToUpdate);
+                continue;
+            }
+
+            // Check if the new RFID already exists in the database with tgl_akhir_identifikasi = null
+            $existingRfid = $tanamanModel->where('rfid_tanaman', $newRfidValue)
+                ->where('tgl_akhir_identifikasi', null)
+                ->first();
+
+            if ($existingRfid) {
+                log_message('error', 'RFID already exists with null tgl_akhir_identifikasi: ' . $newRfidValue);
+                return $this->response->setJSON(['success' => false, 'message' => 'RFID ' . $newRfidValue . ' sudah ada dan masih aktif. Mohon gunakan RFID yang berbeda.']);
+            }
+
+            // Fetch the existing record
+            $tanamanData = $tanamanModel->find($tanamanIdToUpdate);
+            log_message('info', 'Existing tanaman data: ' . json_encode($tanamanData));
+
+            // **Update** the original record's RFID & end date
+            $tanamanData['rfid_tanaman'] = $newRfidValue;
+            $tanamanData['tgl_akhir_identifikasi'] = $currentTime;
+            $tanamanModel->update($tanamanIdToUpdate, $tanamanData);
+            log_message('info', 'Updated original RFID to ' . $newRfidValue . ' for Tanaman ID: ' . $tanamanIdToUpdate);
+
+            // Now insert the new “shooting” activity record
+            $newTanamanData = [
+                'rfid_tanaman'           => $newRfidValue,
+                'pt_estate_id'           => $ptEstateId,
+                'blok_id'                => $blokId,
+                'hs_id'                  => $hsId,
+                'aktivitas_id'           => $shootingAktivitasId,
+                'no_titik_tanam'         => $tanamanData['no_titik_tanam'],
+                'longitude_tanam'        => $tanamanData['longitude_tanam'],
+                'latitude_tanam'         => $tanamanData['latitude_tanam'],
+                'status_id'              => $tanamanData['status_id'],
+                'sister'                 => $tanamanData['sister'],
+                'tgl_mulai_identifikasi' => $currentTime,
+                'tgl_akhir_identifikasi' => null,
+                'nama_karyawan'          => $nama_karyawan,
+                'npk'                    => $npk,
+            ];
+            log_message('info', 'New shooting record: ' . json_encode($newTanamanData));
+
+            $tanamanModel->insert($newTanamanData);
+            log_message('info', 'Inserted new shooting record for Tanaman ID: ' . $tanamanIdToUpdate);
         }
 
         return $this->response->setJSON(['success' => true, 'message' => 'Data berhasil diperbarui dan ditambahkan.']);
