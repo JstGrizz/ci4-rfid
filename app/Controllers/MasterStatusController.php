@@ -19,7 +19,7 @@ class MasterStatusController extends ResourceController
     {
         $model = new StatusModel();
         $data = $model->findAll();
-        return $this->response->setJSON(['blok' => $data]);
+        return $this->response->setJSON(['status' => $data]);
     }
 
     public function show($id = null)
