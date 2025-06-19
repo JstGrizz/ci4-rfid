@@ -111,12 +111,8 @@ $currentUri2 = $request->getUri()->getSegment(2);
                     </a>
                     <ul class="submenu">
                         <li
-                            class="submenu-item <?= ($currentUri1 === 'identifikasi-tanaman' && $currentUri2 === 'seleksi') ? 'active' : ''; ?>">
-                            <a href="<?= base_url('identifikasi-tanaman/seleksi'); ?>" class="submenu-link">Seleksi</a>
-                        </li>
-                        <li
-                            class="submenu-item <?= ($currentUri1 === 'identifikasi-tanaman' && $currentUri2 === 'shooting') ? 'active' : ''; ?>">
-                            <a href="<?= base_url('identifikasi-tanaman/shooting'); ?>" class="submenu-link">Update</a>
+                            class="submenu-item <?= ($currentUri1 === 'identifikasi-tanaman' && $currentUri2 === 'baru') ? 'active' : ''; ?>">
+                            <a href="<?= base_url('identifikasi-tanaman/baru'); ?>" class="submenu-link">Baru</a>
                         </li>
                         <li
                             class="submenu-item <?= ($currentUri1 === 'identifikasi-tanaman' && $currentUri2 === 'update') ? 'active' : ''; ?>">

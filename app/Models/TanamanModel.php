@@ -70,18 +70,16 @@ class TanamanModel extends Model
         return $activeCount > 0;
     }
 
-    public function fetchLatestSisterForTitikTanam($latitude, $longitude, $noTitikTanam, $hsId)
+    public function fetchLatestSisterForTitikTanam($noTitikTanam, $hsId)
     {
+        // Fetch the maximum sister number for the given no_titik_tanam and hs_id
         $maxSister = $this->selectMax('sister')
-            ->where('latitude_tanam', $latitude)
-            ->where('longitude_tanam', $longitude)
             ->where('no_titik_tanam', $noTitikTanam)
             ->where('hs_id', $hsId)
             ->first()['sister'] ?? 0;
 
+        // Count how many active records exist for the given no_titik_tanam and hs_id
         $activeCount = $this->where('tgl_akhir_identifikasi', null)
-            ->where('latitude_tanam', $latitude)
-            ->where('longitude_tanam', $longitude)
             ->where('no_titik_tanam', $noTitikTanam)
             ->where('hs_id', $hsId)
             ->countAllResults() ?? 0;
@@ -91,6 +89,7 @@ class TanamanModel extends Model
             'active_count' => $activeCount,
         ];
     }
+
 
     public function updateTanamanData($noTitikTanam, $hsId, $index, $updateData)
     {

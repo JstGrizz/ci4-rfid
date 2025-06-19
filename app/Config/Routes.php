@@ -193,15 +193,15 @@ $routes->group('', ['filter' => 'authFilter'], function ($routes) {
     $routes->delete('/hectare-statement/(:segment)', 'HectareStatementController::delete/$1'); // Delete action
 
     #--------------------------------------------------------------------
-    # IDENTIFIKASI TANAMAN - Seleksi
+    # IDENTIFIKASI TANAMAN - baru
     #--------------------------------------------------------------------
-    $routes->get('/identifikasi-tanaman/seleksi', 'IdentifikasiTanamanController::seleksi');
+    $routes->get('/identifikasi-tanaman/baru', 'IdentifikasiTanamanController::baru');
     $routes->get('identifikasi-tanaman/getBloksByPtEstateId/(:num)', 'IdentifikasiTanamanController::getBloksByPtEstateId/$1');
     $routes->get('identifikasi-tanaman/getHectareStatementByPtEstateIdAndBlockId/(:num)/(:num)', 'IdentifikasiTanamanController::getHectareStatementByPtEstateIdAndBlockId/$1/$2');
     $routes->get('identifikasi-tanaman/getNoTitikTanamData/(:num)/(:num)/(:num)', 'IdentifikasiTanamanController::getNoTitikTanamData/$1/$2/$3');
     $routes->get('identifikasi-tanaman/getTanamanStatus/(:segment)/(:segment)/(:segment)/(:segment)/(:segment)', 'IdentifikasiTanamanController::getTanamanStatus/$1/$2/$3/$4/$5');
     $routes->get('identifikasi-tanaman/fetchSister', 'IdentifikasiTanamanController::fetchSister');
-    $routes->post('identifikasi-tanaman/seleksi/insert', 'IdentifikasiTanamanController::insertTanamanData');
+    $routes->post('identifikasi-tanaman/insertTanamanData', 'IdentifikasiTanamanController::insertTanamanData');
 
 
     #--------------------------------------------------------------------

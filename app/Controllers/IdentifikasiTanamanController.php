@@ -10,10 +10,11 @@ use App\Models\HectareStatementModel;
 use App\Models\TanamanModel;
 use App\Models\StatusModel;
 use App\Models\MasterLossesModel;
+use App\Models\TipeAktivitasModel;
 
 class IdentifikasiTanamanController extends ResourceController
 {
-    public function new()
+    public function baru()
     {
         $session = session();
         $npk = $session->get('npk'); // Ambil NPK dari session
@@ -35,9 +36,11 @@ class IdentifikasiTanamanController extends ResourceController
 
         $hectareStatementModel = new HectareStatementModel();
         $blokModel = new MasterBlokModel();
+        $tipeAktivitasModel = new TipeAktivitasModel(); // Load TipeAktivitasModel
 
         // Ambil daftar PT dan Estate unik dari hectare_statement
         $data['ptEstates'] = $hectareStatementModel->getUniquePtEstates();
+        $data['tipeAktivitas'] = $tipeAktivitasModel->getAll(); // Fetch all Tipe Aktivitas
 
         // Nilai default untuk fields
         $data['pt'] = '';
@@ -81,7 +84,7 @@ class IdentifikasiTanamanController extends ResourceController
         }
 
         // Load view dan pass data
-        return view('identifikasi-tanaman-new', $data);
+        return view('identifikasi-tanaman-baru', $data);
     }
 
     public function viewEdit()
@@ -253,36 +256,47 @@ class IdentifikasiTanamanController extends ResourceController
         return $this->response->setJSON(['success' => false, 'error' => 'Status tidak ditemukan.']);
     }
 
-    public function fetchSister($latitude = null, $longitude = null, $noTitikTanam = null)
+    public function fetchSister()
     {
-        $ptEstateId = $this->request->getGet('ptEstateId');
-        $blokId = $this->request->getGet('blokId');
+        // Grab all three params from query string:
+        $noTitikTanam = $this->request->getGet('noTitikTanam');
+        $ptEstateId   = $this->request->getGet('ptEstateId');
+        $blokId       = $this->request->getGet('blokId');
 
-        if ($latitude && $longitude && $noTitikTanam && $ptEstateId && $blokId) {
-            $hsId = $this->getHsIdByPtEstateAndBlok($ptEstateId, $blokId);
-
-            if ($hsId === null) {
-                return $this->response->setJSON(['success' => false, 'error' => 'Pernyataan Hektar tidak ditemukan.']);
-            }
-
-            $tanamanModel = new TanamanModel();
-            $status = $tanamanModel->fetchLatestSisterForTitikTanam(
-                $latitude,
-                $longitude,
-                $noTitikTanam,
-                $hsId
-            );
-
-            if ($status['active_count'] > 0) {
-                $nextSister = $status['max_sister'] + 1;
-                return $this->response->setJSON(['success' => true, 'sister' => $nextSister]);
-            } else {
-                return $this->response->setJSON(['success' => true, 'sister' => 0]);
-            }
-        } else {
-            return $this->response->setJSON(['success' => false, 'error' => 'Parameter tidak lengkap.']);
+        if (! $noTitikTanam || ! $ptEstateId || ! $blokId) {
+            return $this->response->setJSON([
+                'success' => false,
+                'error'   => 'Parameter tidak lengkap.'
+            ]);
         }
+
+        // Lookup the HectareStatement ID (your helper method)
+        $hsModel = new HectareStatementModel();
+        $hs = $hsModel->getHectareStatementByPtEstateIdAndBlockId($ptEstateId, $blokId);
+        if (! $hs) {
+            return $this->response->setJSON([
+                'success' => false,
+                'error'   => 'Pernyataan Hektar tidak ditemukan.'
+            ]);
+        }
+        $hsId = $hs['hs_id'];
+
+        // Fetch the latest sister for these coordinates & titik
+        $tanamanModel = new TanamanModel();
+        $status = $tanamanModel->fetchLatestSisterForTitikTanam($noTitikTanam, $hsId);
+
+        if ($status['active_count'] > 0) {
+            $nextSister = $status['max_sister'] + 1;
+        } else {
+            $nextSister = 0;
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'sister'  => $nextSister
+        ]);
     }
+
 
     private function calculateWeek($tanggalTanam)
     {
@@ -316,11 +330,12 @@ class IdentifikasiTanamanController extends ResourceController
         $latitude = $this->request->getPost('latitude');
         $longitude = $this->request->getPost('longitude');
         $no_titik_tanam = $this->request->getPost('no_titik_tanam');
-        $status_id = $this->request->getPost('status');
+        $status_name = $this->request->getPost('status');  // Get status name (text)
         $sister = $this->request->getPost('sister_ke');
-        $week = $this->request->getPost('week');
+        $week = $this->request->getPost('week'); // Week from the form
         $nama_karyawan = $this->request->getPost('nama');
         $npk = $this->request->getPost('npk');
+        $aktivitas_name = $this->request->getPost('tipe_aktivitas'); // Get activity name (text)
 
         // Ambil hs_id berdasarkan pt_estate_id dan blok_id
         $hs_id = $this->getHsIdByPtEstateAndBlok($pt_estate_id, $blok_id);
@@ -330,9 +345,7 @@ class IdentifikasiTanamanController extends ResourceController
         }
 
         // Cek apakah RFID sudah ada di database (hanya jika RFID bukan NULL atau kosong)
-        if (
-            $rfid_tanaman !== null && $rfid_tanaman !== ""
-        ) {
+        if ($rfid_tanaman !== null && $rfid_tanaman !== "") {
             $tanamanModel = new TanamanModel();
             $existingRfid = $tanamanModel
                 ->where('rfid_tanaman', $rfid_tanaman)
@@ -340,10 +353,50 @@ class IdentifikasiTanamanController extends ResourceController
                 ->first();
 
             if ($existingRfid) {
-                // Tangani kasus NULL atau kosong secara khusus
-                $rfidDisplay = ($rfid_tanaman === null) ? 'NULL' : $rfid_tanaman;
-                return $this->response->setJSON(['success' => false, 'error' => 'RFID ' . $rfidDisplay . ' sudah terdaftar di tanaman yang aktif, tolong diganti.']);
+                return $this->response->setJSON(['success' => false, 'error' => 'RFID ' . $rfid_tanaman . ' sudah terdaftar di tanaman yang aktif, tolong diganti.']);
             }
+        }
+
+        // Fetch all data from 'status' and 'tipe_aktivitas' tables
+        $statusModel = new StatusModel(); // Assuming you have a StatusModel
+        $aktivitasModel = new TipeAktivitasModel(); // Assuming you have an AktivitasModel
+
+        // Fetch all status records
+        $allStatuses = $statusModel->findAll();
+
+        // Fetch all aktivitas records
+        $allAktivitas = $aktivitasModel->findAll();
+
+        // Determine the 'minggu' value based on the activity type and status
+        $minggu_tanam = 0; // Default value if no condition matches
+        $status_id = null;
+        $aktivitas_id = null;
+
+        // Loop through all statuses and aktivitas to match the names
+        foreach ($allStatuses as $status) {
+            if (strtolower($status['nama_status']) === strtolower($status_name)) {
+                $status_id = $status['status_id'];
+                break;
+            }
+        }
+
+        foreach ($allAktivitas as $aktivitas) {
+            if (strtolower($aktivitas['nama_aktivitas']) === strtolower($aktivitas_name)) {
+                $aktivitas_id = $aktivitas['aktivitas_id'];
+                break;
+            }
+        }
+
+        // If we couldn't find the correct status or aktivitas, return an error
+        if ($status_id === null || $aktivitas_id === null) {
+            return $this->response->setJSON(['success' => false, 'error' => 'Tipe Aktivitas atau Status tidak valid.']);
+        }
+
+        // Set 'minggu_tanam' value based on conditions
+        if (strtolower($aktivitas_name) === 'seleksi' && strtolower($status_name) === 'pc' && $sister === 0) {
+            $minggu_tanam = $week; // If 'seleksi' and 'pc' and sister is 0, use the week value
+        } else {
+            $minggu_tanam = 0; // Default value if conditions are not met
         }
 
         // Siapkan data untuk dimasukkan ke dalam tabel 'tanaman'
@@ -354,15 +407,15 @@ class IdentifikasiTanamanController extends ResourceController
             'latitude_tanam' => (float)$latitude,
             'longitude_tanam' => (float)$longitude,
             'no_titik_tanam' => (int)$no_titik_tanam,
-            'status_id' => (int)$status_id,
+            'status_id' => (int)$status_id,  // Use the correct status_id
             'sister' => (int)$sister,
-            'is_loses' => 'N',  // Nilai default
             'losses_id' => null,  // Nilai default
-            'deskripsi_Loses' => null,  // Nilai default
+            'deskripsi_loses' => null,  // Nilai default
             'tgl_akhir_identifikasi' => null,  // Nilai default
-            'minggu' => (int)$week,
+            'minggu' => (int)$minggu_tanam,  // Set minggu value based on the condition
             'nama_karyawan' => $nama_karyawan,
-            'npk' => $npk
+            'npk' => $npk,
+            'aktivitas_id' => (int)$aktivitas_id, // Use the correct aktivitas_id
         ];
 
         // Insert data ke dalam tabel 'tanaman' menggunakan TanamanModel
@@ -373,6 +426,7 @@ class IdentifikasiTanamanController extends ResourceController
             return $this->response->setJSON(['success' => false, 'error' => 'Gagal menyimpan data.']);
         }
     }
+
 
     public function getActiveTanamanData($noTitikTanam)
     {
@@ -397,8 +451,6 @@ class IdentifikasiTanamanController extends ResourceController
             'losses' => $lossesData
         ]);
     }
-
-    // ... (bagian atas controller Anda) ...
 
     public function updateIdentifikasiTanaman()
     {

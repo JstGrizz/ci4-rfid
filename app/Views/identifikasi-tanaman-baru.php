@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Identifikasi Tanaman - New</title>
+    <title>Identifikasi Tanaman - Baru</title>
 
     <link rel="shortcut icon" href="<?= base_url('/assets/compiled/svg/favicon.svg'); ?>" type="image/x-icon" />
     <link rel="shortcut icon"
@@ -40,9 +40,9 @@
                 <div class="page-title">
                     <div class="row">
                         <div class="col-12 col-md-6 order-md-1 order-last">
-                            <h3>Identifikasi Tanaman New</h3>
+                            <h3>Identifikasi Tanaman Baru</h3>
                             <p class="text-subtitle text-muted">
-                                Form untuk mengidentifikasi tanaman baru
+                                Form untuk mengidentifikasi tanaman Baru
                             </p>
                         </div>
                         <div class="col-12 col-md-6 order-md-2 order-first">
@@ -59,7 +59,7 @@
                         </div>
                     </div>
                 </div>
-                <form class="form" id="form-identifikasi-tanaman-new">
+                <form class="form" id="form-identifikasi-tanaman-baru">
                     <section class="section">
                         <div class="card">
                             <div class="card-header">
@@ -79,11 +79,33 @@
                             </div>
                         </div>
                     </section>
+                    <section class="section">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4 class="card-title">Tipe Aktivitas</h4>
+                                <p>Masukkan Tipe Aktivitas</p>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label for="tipe_aktivitas">Tipe Aktivitas</label>
+                                    <select class="form-control" id="tipe_aktivitas" name="tipe_aktivitas"
+                                        onchange="toggleCards()">
+                                        <option value="">- Pilih Tipe Aktivitas -</option>
+                                        <?php foreach ($tipeAktivitas as $aktivitas): ?>
+                                            <option value="<?= $aktivitas['aktivitas_id']; ?>">
+                                                <?= $aktivitas['nama_aktivitas']; ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
                     <section id="multiple-column-form">
 
                         <div class="row match-height">
                             <!-- Card for Hectar Statement Data -->
-                            <div class="col-12">
+                            <div class="col-12" id="hectare-statement-card" style="display:none;">
                                 <div class="card">
                                     <div class="card-header">
                                         <h4 class="card-title">Data Hectar Statement</h4>
@@ -157,7 +179,7 @@
                             </div>
 
                             <!-- Card for Identifikasi Tanaman Data -->
-                            <div class="col-12">
+                            <div class="col-12" id="identifikasi-tanaman-card" style="display:none;">
                                 <div class="card">
                                     <div class="card-header">
                                         <h4 class="card-title">Data Identifikasi Tanaman</h4>
@@ -188,7 +210,6 @@
                                                 <div class="form-group">
                                                     <label for="status">Status Tanaman</label>
                                                     <select class="form-select" id="status" name="status">
-                                                        <option value="">Pilih Status</option>
                                                     </select>
                                                 </div>
                                                 <div class="form-group">
@@ -331,9 +352,6 @@
             const longitudeTanam = document.getElementById('longitude').value;
             const latitudeTanam = document.getElementById('latitude').value;
 
-            console.log("noTitikTanam:", noTitikTanam, "ptEstateId:", ptEstateId, "blokId:", blokId, "longitudeTanam:",
-                longitudeTanam, "latitudeTanam:", latitudeTanam);
-
             if (noTitikTanam && ptEstateId && blokId && longitudeTanam && latitudeTanam) {
                 fetch(
                         `<?= base_url('identifikasi-tanaman/getTanamanStatus'); ?>/${noTitikTanam}/${ptEstateId}/${blokId}/${longitudeTanam}/${latitudeTanam}`
@@ -346,7 +364,6 @@
                         if (data.success) {
                             data.statusOptions.forEach(status => {
                                 const option = document.createElement('option');
-                                console.log("status.value:", status.value, "status.label:", status.label);
                                 option.value = status.value;
                                 option.textContent = status.label;
                                 statusSelect.appendChild(option);
@@ -363,28 +380,34 @@
         }
 
         function fetchSisterData() {
-            const latitude = document.getElementById('latitude').value;
-            const longitude = document.getElementById('longitude').value;
             const noTitikTanam = document.getElementById('no_titik_tanam').value;
             const ptEstateId = document.getElementById('pt_estate').value;
             const blokId = document.getElementById('blok_id').value;
 
-            const url =
-                `<?= base_url('identifikasi-tanaman/fetchSister'); ?>/${latitude}/${longitude}/${noTitikTanam}?ptEstateId=${ptEstateId}&blokId=${blokId}`;
+            // Ensure all necessary parameters are provided
+            if (noTitikTanam && ptEstateId && blokId) {
+                const params = new URLSearchParams({
+                    noTitikTanam: noTitikTanam,
+                    ptEstateId: ptEstateId,
+                    blokId: blokId
+                });
 
-            fetch(url)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        document.getElementById('sister_ke').value = data.sister;
-                    } else {
-                        console.log(data.error || 'Error fetching sister number');
-                    }
-                })
-                .catch(error => console.error('Error fetching sister data:', error));
+                fetch(`<?= base_url('identifikasi-tanaman/fetchSister'); ?>?${params}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            document.getElementById('sister_ke').value = data.sister;
+                        } else {
+                            console.warn('fetchSister error:', data.error);
+                        }
+                    })
+                    .catch(err => console.error('Error fetching sister data:', err));
+            } else {
+                console.warn('Missing parameters for fetching sister data.');
+            }
         }
 
-        /// 1. Fetch data when block is selected (basic hectare statement data)
+        // 1. Fetch data when block is selected (basic hectare statement data)
         document.getElementById('blok_id').addEventListener('change', autoFillFields);
 
         // 2. Populate longitude and latitude when No Titik Tanam changes
@@ -394,13 +417,26 @@
         //    (autoFillStatus is called from inside autoFillTitikTanam now)
 
         // 4. Fetch sister data when latitude, longitude, or No Titik Tanam change (after basic data is ready)
-        document.getElementById('latitude').addEventListener('blur', fetchSisterData);
-        document.getElementById('longitude').addEventListener('blur', fetchSisterData);
         document.getElementById('no_titik_tanam').addEventListener('blur', fetchSisterData);
 
         function insertTanamanData() {
             const formData = new FormData(document.querySelector('form'));
 
+            // Get the selected 'aktivitas_name' and 'status_name' from dropdowns
+            const aktivitasSelect = document.getElementById('tipe_aktivitas');
+            const statusSelect = document.getElementById('status');
+
+            const aktivitasName = aktivitasSelect.options[aktivitasSelect.selectedIndex].text;
+            const statusName = statusSelect.options[statusSelect.selectedIndex].text;
+
+            // Ensure that the 'aktivitas_id' and 'status_id' are correctly set based on text content
+            // We are not directly appending the IDs here, as the controller will handle the lookup
+
+            // Append 'nama_aktivitas' and 'nama_status' to the formData
+            formData.append('tipe_aktivitas', aktivitasName); // Send the name as the controller will fetch the id
+            formData.append('status', statusName); // Send the name as the controller will fetch the id
+
+            // Send the form data to the backend
             fetch('<?= base_url('identifikasi-tanaman/insertTanamanData'); ?>', {
                     method: 'POST',
                     body: formData
@@ -435,11 +471,48 @@
             e.preventDefault();
             insertTanamanData();
         });
+
+
+        function toggleCards() {
+            const tipeAktivitas = document.getElementById('tipe_aktivitas').value;
+            const hectareStatementCard = document.getElementById('hectare-statement-card');
+            const identifikasiTanamanCard = document.getElementById('identifikasi-tanaman-card');
+            const rfidField = document.getElementById('rfid'); // Get the RFID field
+
+            // Check if tipe aktivitas is selected
+            if (tipeAktivitas) {
+                // Show the cards if tipe aktivitas is selected
+                hectareStatementCard.style.display = 'block';
+                identifikasiTanamanCard.style.display = 'block';
+
+                // If the selected tipe_aktivitas is 'seleksi', disable RFID field
+                if (tipeAktivitas.toLowerCase() === 'seleksi') {
+                    rfidField.disabled = true; // Disable the RFID input field
+                } else {
+                    rfidField.disabled = false; // Enable the RFID input field
+                }
+            } else {
+                // Hide the cards if no tipe aktivitas is selected
+                hectareStatementCard.style.display = 'none';
+                identifikasiTanamanCard.style.display = 'none';
+            }
+        }
+
+        document.querySelector('form').addEventListener('reset', function() {
+            toggleCards();
+        });
+
+        // Add event listener to call toggleCards when tipe_aktivitas changes
+        document.getElementById('tipe_aktivitas').addEventListener('change', toggleCards);
+
+        // Call toggleCards on page load to check the initial state
+        document.addEventListener('DOMContentLoaded', toggleCards);
     </script>
+
     <script>
         // once the DOM is ready...
         document.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('form-identifikasi-tanaman-new');
+            const form = document.getElementById('form-identifikasi-tanaman-baru');
             form.addEventListener('keydown', function(e) {
                 // if the key is Enter, prevent its default behavior
                 if (e.key === 'Enter' || e.keyCode === 13) {

@@ -26,7 +26,7 @@ class CreateTanamanTable extends Migration
             'rfid_tanaman' => [
                 'type'       => 'VARCHAR',
                 'constraint' => '255',
-                'null'       => false,
+                'null'       => true,
             ],
             'latitude_tanam' => [
                 'type'       => 'DECIMAL',
