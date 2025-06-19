@@ -411,16 +411,10 @@ class IdentifikasiTanamanController extends ResourceController
 
     public function getActiveTanamanDataSeleksi($noTitikTanam)
     {
-        // Logging the received parameters for debugging
-        log_message('info', 'Received request for getActiveTanamanDataSeleksi');
-        log_message('info', 'no_titik_tanam: ' . $noTitikTanam);
 
         // Get ptEstateId and blokId from the request
         $ptEstateId = $this->request->getVar('pt_estate_id'); // Assuming pt_estate_id is passed in the request
         $blokId = $this->request->getVar('blok_id'); // Assuming blok_id is passed in the request
-
-        log_message('info', 'pt_estate_id: ' . $ptEstateId);
-        log_message('info', 'blok_id: ' . $blokId);
 
         // Fetch all tipe_aktivitas from the database
         $tipeAktivitasModel = new TipeAktivitasModel();
@@ -441,11 +435,8 @@ class IdentifikasiTanamanController extends ResourceController
             return $this->response->setJSON(['success' => false, 'error' => 'No tipe aktivitas "seleksi" found.']);
         }
 
-        log_message('info', 'aktivitasId: ' . $aktivitasId);
-
         // Get hsId based on ptEstateId and blokId
         $hsId = $this->getHsIdByPtEstateAndBlok($ptEstateId, $blokId);
-        log_message('info', 'hsId: ' . $hsId);
 
         // Load the TanamanModel
         $tanamanModel = new TanamanModel();
@@ -453,9 +444,19 @@ class IdentifikasiTanamanController extends ResourceController
         // Call the model method with noTitikTanam, hsId, and aktivitasId
         $activeTanaman = $tanamanModel->getNoActiveTanamDataSeleksi($noTitikTanam, $hsId, $aktivitasId);
 
-        // Return the response
+        // If active tanaman data exists, process it
         if ($activeTanaman) {
             log_message('info', 'Active Tanaman Data Found');
+
+            // Process the data to handle null RFID
+            foreach ($activeTanaman as &$tanaman) {
+                // If RFID is null, replace it with an empty string
+                if (is_null($tanaman['rfid_tanaman'])) {
+                    $tanaman['rfid_tanaman'] = '';  // Set empty string instead of 'belum ada RFID'
+                }
+            }
+
+            // Return the response with the modified data
             return $this->response->setJSON(['success' => true, 'tanaman' => $activeTanaman]);
         } else {
             log_message('info', 'No Active Tanaman Data Found');
