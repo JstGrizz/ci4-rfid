@@ -20,11 +20,11 @@
 
 <body>
     <style>
-    .table-centered th,
-    .table-centered td {
-        text-align: center;
-        justify-content: center;
-    }
+        .table-centered th,
+        .table-centered td {
+            text-align: center;
+            justify-content: center;
+        }
     </style>
     <script src="<?= base_url('/assets/static/js/initTheme.js'); ?>"></script>
     <div id="app">
@@ -99,9 +99,9 @@
                                                         onchange="updateBloks()">
                                                         <option value="">Select PT and Estate</option>
                                                         <?php foreach ($ptEstates as $ptEstate): ?>
-                                                        <option value="<?= $ptEstate['pt_estate_id']; ?>">
-                                                            <?= $ptEstate['pt']; ?> - <?= $ptEstate['estate']; ?>
-                                                        </option>
+                                                            <option value="<?= $ptEstate['pt_estate_id']; ?>">
+                                                                <?= $ptEstate['pt']; ?> - <?= $ptEstate['estate']; ?>
+                                                            </option>
                                                         <?php endforeach; ?>
                                                     </select>
                                                 </div>
@@ -204,253 +204,276 @@
     <script src="<?= base_url('/assets/static/js/pages/simple-datatables.js'); ?>"></script>
     <script src=" <?= base_url('/assets/static/js/pages/simple-datatables.js'); ?>"></script>
     <script>
-    // Function to fetch blocks when a PT & Estate is selected
-    function updateBloks() {
-        const ptEstateId = document.getElementById('pt_estate').value;
-        const blokSelect = document.getElementById('blok_id');
+        // Function to fetch blocks when a PT & Estate is selected
+        function updateBloks() {
+            const ptEstateId = document.getElementById('pt_estate').value;
+            const blokSelect = document.getElementById('blok_id');
 
-        if (ptEstateId) {
-            fetch(`<?= base_url('identifikasi-tanaman/getBloksByPtEstateId'); ?>/${ptEstateId}`)
-                .then(response => response.json())
-                .then(data => {
-                    blokSelect.innerHTML = '<option value="">Pilih Blok</option>';
-                    data.bloks.forEach(blok => {
-                        const option = document.createElement('option');
-                        option.value = blok.blok_id;
-                        option.textContent = blok.nama_blok;
-                        blokSelect.appendChild(option);
-                    });
+            if (ptEstateId) {
+                fetch(`<?= base_url('identifikasi-tanaman/getBloksByPtEstateId'); ?>/${ptEstateId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        blokSelect.innerHTML = '<option value="">Pilih Blok</option>';
+                        data.bloks.forEach(blok => {
+                            const option = document.createElement('option');
+                            option.value = blok.blok_id;
+                            option.textContent = blok.nama_blok;
+                            blokSelect.appendChild(option);
+                        });
 
-                    autoFillFields();
-                })
-                .catch(error => console.error('Gagal mengambil data blok:', error));
-        } else {
-            blokSelect.innerHTML = '<option value="">Pilih Blok</option>';
+                        autoFillFields();
+                    })
+                    .catch(error => console.error('Gagal mengambil data blok:', error));
+            } else {
+                blokSelect.innerHTML = '<option value="">Pilih Blok</option>';
+            }
         }
-    }
 
-    // Function to auto-fill the fields when a blok is selected
-    function autoFillFields() {
-        const ptEstateId = document.getElementById('pt_estate').value;
-        const blokId = document.getElementById('blok_id').value;
+        // Function to auto-fill the fields when a blok is selected
+        function autoFillFields() {
+            const ptEstateId = document.getElementById('pt_estate').value;
+            const blokId = document.getElementById('blok_id').value;
 
-        if (ptEstateId && blokId) {
-            fetch(
-                    `<?= base_url('identifikasi-tanaman/getHectareStatementByPtEstateIdAndBlockId'); ?>/${ptEstateId}/${blokId}`
-                )
-                .then(response => response.json())
-                .then(data => {
-                    if (data) {
-                        document.getElementById('tahun_tanam').value = data.tahun_tanam;
-                        document.getElementById('bulan_tanam').value = data.bulan_tanam;
-                        document.getElementById('luas_tanah').value = data.luas_tanah;
-                        document.getElementById('varian_bibit').value = data.varian_bibit;
-                        document.getElementById('week').value = data.week;
-                    }
-                })
-                .catch(error => console.error('Gagal mengambil data pernyataan hektar:', error));
+            if (ptEstateId && blokId) {
+                fetch(
+                        `<?= base_url('identifikasi-tanaman/getHectareStatementByPtEstateIdAndBlockId'); ?>/${ptEstateId}/${blokId}`
+                    )
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data) {
+                            document.getElementById('tahun_tanam').value = data.tahun_tanam;
+                            document.getElementById('bulan_tanam').value = data.bulan_tanam;
+                            document.getElementById('luas_tanah').value = data.luas_tanah;
+                            document.getElementById('varian_bibit').value = data.varian_bibit;
+                            document.getElementById('week').value = data.week;
+                        }
+                    })
+                    .catch(error => console.error('Gagal mengambil data pernyataan hektar:', error));
+            }
         }
-    }
 
-    // Function to auto-fill longitude and latitude if no titik tanam is inputed
-    function autoFillTitikTanam() {
-        const noTitikTanam = document.getElementById('no_titik_tanam').value;
-        const ptEstateId = document.getElementById('pt_estate').value;
-        const blokId = document.getElementById('blok_id').value;
-        const longitudeField = document.getElementById('longitude');
-        const latitudeField = document.getElementById('latitude');
+        // Function to auto-fill longitude and latitude if no titik tanam is inputed
+        function autoFillTitikTanam() {
+            const noTitikTanam = document.getElementById('no_titik_tanam').value;
+            const ptEstateId = document.getElementById('pt_estate').value;
+            const blokId = document.getElementById('blok_id').value;
+            const longitudeField = document.getElementById('longitude');
+            const latitudeField = document.getElementById('latitude');
 
-        if (noTitikTanam && ptEstateId && blokId) {
-            fetch(
-                    `<?= base_url('identifikasi-tanaman/getNoTitikTanamData'); ?>/${noTitikTanam}/${ptEstateId}/${blokId}`
-                )
-                .then(response => response.json())
-                .then(data => {
-                    if (data.found) {
-                        document.getElementById('longitude').value = data.longitude;
-                        document.getElementById('latitude').value = data.latitude;
-                        longitudeField.readOnly = true;
-                        latitudeField.readOnly = true;
-                    } else {
-                        longitudeField.readOnly = false;
-                        latitudeField.readOnly = false;
-                    }
-                })
-                .catch(error => console.error('Gagal mengambil data Nomor Titik Tanam:', error));
-        } else {
-            longitudeField.readOnly = false;
-            latitudeField.readOnly = false;
-            longitudeField.value = '';
-            latitudeField.value = '';
+            if (noTitikTanam && ptEstateId && blokId) {
+                fetch(
+                        `<?= base_url('identifikasi-tanaman/getNoTitikTanamData'); ?>/${noTitikTanam}/${ptEstateId}/${blokId}`
+                    )
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.found) {
+                            document.getElementById('longitude').value = data.longitude;
+                            document.getElementById('latitude').value = data.latitude;
+                            longitudeField.readOnly = true;
+                            latitudeField.readOnly = true;
+                        } else {
+                            longitudeField.readOnly = false;
+                            latitudeField.readOnly = false;
+                        }
+                    })
+                    .catch(error => console.error('Gagal mengambil data Nomor Titik Tanam:', error));
+            } else {
+                longitudeField.readOnly = false;
+                latitudeField.readOnly = false;
+                longitudeField.value = '';
+                latitudeField.value = '';
+            }
         }
-    }
 
-    // Add event listener to fetch data when block is selected
-    document.getElementById('blok_id').addEventListener('change', autoFillFields);
-    // Add event listener to the No Titik Tanam input field
-    document.getElementById('no_titik_tanam').addEventListener('change', autoFillTitikTanam);
+        // Add event listener to fetch data when block is selected
+        document.getElementById('blok_id').addEventListener('change', autoFillFields);
+        // Add event listener to the No Titik Tanam input field
+        document.getElementById('no_titik_tanam').addEventListener('change', autoFillTitikTanam);
 
-    // Function to auto-fill the fields when a no_titik_tanam is provided
-    function autoFillTanamanData() {
-        const noTitikTanam = document.getElementById('no_titik_tanam').value;
-        const tanamanContainer = document.getElementById('tanaman-container');
+        function autoFillTanamanData() {
+            const noTitikTanam = document.getElementById('no_titik_tanam').value;
+            const ptEstateId = document.getElementById('pt_estate').value; // Get PT Estate ID
+            const blokId = document.getElementById('blok_id').value; // Get Blok ID
+            const tanamanContainer = document.getElementById('tanaman-container');
 
-        if (noTitikTanam) {
-            fetch(`<?= base_url('identifikasi-tanaman/getActiveTanamanData'); ?>/${noTitikTanam}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        tanamanContainer.innerHTML = '';
+            // Check if necessary values are present
+            if (noTitikTanam && ptEstateId && blokId) {
+                // Show loading indicator
+                tanamanContainer.innerHTML = 'Loading...';
 
-                        data.tanaman.forEach((tanaman, index) => {
-                            const formHtml = `
-                            <div class="card">
-                                <div class="card-header">
-                                    <h4 class="card-title">Tanaman ${index + 1}</h4>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="form-group">
-                                                <label>RFID</label>
-                                                <input type="text" class="form-control" name="rfid_tanaman[${index}]"
-                                                    id="rfid_tanaman_${index}" value="${tanaman.rfid_tanaman}" readonly />
-                                                <!-- PERBAIKI INI: Gunakan tanaman.tanaman_id -->
-                                                <input type="hidden" name="tanaman_id[${index}]" value="${tanaman.tanaman_id}" />
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Perbarui RFID?</label> 
-                                                <input type="checkbox" class="form-check-input" id="update_rfid_${index}" name="update_rfid[${index}]" onchange="toggleNewRfid(${index})" />
-                                                <div id="updateRfidFields_${index}" style="display: none;">
-                                                    <input type="text" class="form-control" name="new_rfid[${index}]"
-                                                        id="update_rfid_tanaman_${index}" placeholder="Masukkan RFID baru" /> 
-                                                </div>
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Sister</label>
-                                                <input type="text" class="form-control" name="sister[${index}]"
-                                                    id="sister_${index}" value="${tanaman.sister}" readonly />
+                // Create the URL with the additional parameters
+                const url =
+                    `<?= base_url('identifikasi-tanaman/getActiveTanamanDataUpdate'); ?>/${noTitikTanam}?pt_estate_id=${ptEstateId}&blok_id=${blokId}`;
+
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            tanamanContainer.innerHTML = ''; // Clear loading text
+
+                            // Loop through each tanaman and build form elements
+                            data.tanaman.forEach((tanaman, index) => {
+                                const formHtml = `
+                        <div class="card">
+                            <div class="card-header">
+                                <h4 class="card-title">Tanaman ${index + 1}</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 col-12">
+                                        <div class="form-group">
+                                            <label>RFID</label>
+                                            <input type="text" class="form-control" name="rfid_tanaman[${index}]"
+                                                id="rfid_tanaman_${index}" value="${tanaman.rfid_tanaman}" readonly />
+                                            <input type="hidden" name="tanaman_id[${index}]" value="${tanaman.tanaman_id}" />
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Perbarui RFID?</label>
+                                            <input type="checkbox" class="form-check-input" id="update_rfid_${index}" 
+                                                name="update_rfid[${index}]" onchange="toggleNewRfid(${index})" />
+                                            <div id="updateRfidFields_${index}" style="display: none;">
+                                                <input type="text" class="form-control" name="new_rfid[${index}]"
+                                                    id="update_rfid_tanaman_${index}" placeholder="Masukkan RFID baru" />
                                             </div>
                                         </div>
-                                        <div class="col-md-6">
-                                            <div class="form-group">
-                                                <label>Status</label>
-                                                <input type="text" class="form-control" name="status[${index}]"
-                                                    id="status_tanaman_${index}" value="${tanaman.nama_status}" readonly />
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Perbarui Loses?</label> 
-                                                <input type="checkbox" class="form-check-input" id="update_losses_${index}" name="update_losses[${index}]" onchange="toggleLossesFields(${index})" />
-                                                <div id="lossesFields_${index}" style="display: none;">
-                                                    <select class="form-select" name="penyebab_loses[${index}]" id="penyebab_loses_${index}">
-                                                    </select>
-                                                    <br>
-                                                    <textarea class="form-control" name="deskripsi_loses[${index}]"
-                                                        placeholder="Isi Deskripsi Penyebab Loses"></textarea>
-                                                </div>
+                                        <div class="form-group">
+                                            <label>Tipe Aktivitas</label>
+                                            <input type="text" class="form-control" name="tipe_aktivitas[${index}]"
+                                                id="tipe_aktivitas_${index}" value="${tanaman.nama_aktivitas}" readonly />
+                                        </div>   
+                                        
+                                    </div>
+                                        <!-- Keep the existing Losses fields -->
+                                    <div class="col-md-6 col-12">
+                                        <div class="form-group">
+                                            <label>Sister</label>
+                                            <input type="text" class="form-control" name="sister[${index}]"
+                                                id="sister_${index}" value="${tanaman.sister}" readonly />
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Status</label>
+                                            <input type="text" class="form-control" name="status[${index}]"
+                                                id="status_tanaman_${index}" value="${tanaman.nama_status}" readonly />
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Perbarui Losses?</label> 
+                                            <input type="checkbox" class="form-check-input" id="update_losses_${index}" 
+                                                name="update_losses[${index}]" onchange="toggleLossesFields(${index})" />
+                                            <div id="lossesFields_${index}" style="display: none;">
+                                                <select class="form-select" name="penyebab_loses[${index}]" id="penyebab_loses_${index}">
+                                                </select>
+                                                <br>
+                                                <textarea class="form-control" name="deskripsi_loses[${index}]"
+                                                    placeholder="Isi Deskripsi Penyebab Loses"></textarea>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>`;
-                            tanamanContainer.innerHTML += formHtml;
+                                <div class="row">
+                            </div>                           
+                        </div>`;
+                                // Append the new form to the container
+                                tanamanContainer.innerHTML += formHtml;
 
-                            fetchLossesOptions(index);
+                                // Fetch Losses options for each tanaman
+                                fetchLossesOptions(index);
+                            });
+                        } else {
+                            tanamanContainer.innerHTML = 'Tidak ada tanaman aktif ditemukan.';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Gagal mengambil data tanaman aktif:', error);
+                        tanamanContainer.innerHTML = 'Terjadi kesalahan saat mengambil data tanaman.';
+                    });
+            }
+        }
+
+        // Fetch Master Losses and populate the dropdown
+        function fetchLossesOptions(index) {
+            fetch(`<?= base_url('identifikasi-tanaman/getLossesOptions') ?>`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const lossesSelect = document.getElementById(`penyebab_loses_${index}`);
+                        if (!lossesSelect.querySelector('option[value=""]')) {
+                            const defaultOption = document.createElement("option");
+                            defaultOption.value = "";
+                            defaultOption.text = "Pilih Penyebab Loses";
+                            lossesSelect.prepend(defaultOption);
+                        }
+                        data.losses.forEach(loss => {
+                            const option = document.createElement("option");
+                            option.value = loss.losses_id;
+                            option.text = loss.penyebab_losses;
+                            lossesSelect.appendChild(option);
                         });
-                    } else {
-                        alert(data.error || 'Tidak ada tanaman aktif ditemukan.');
                     }
                 })
-                .catch(error => console.error('Gagal mengambil data tanaman aktif:', error));
+                .catch(error => console.error('Gagal mengambil opsi loses:', error));
         }
-    }
 
-    // Fetch Master Losses and populate the dropdown
-    function fetchLossesOptions(index) {
-        fetch(`<?= base_url('identifikasi-tanaman/getLossesOptions') ?>`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const lossesSelect = document.getElementById(`penyebab_loses_${index}`);
-                    if (!lossesSelect.querySelector('option[value=""]')) {
-                        const defaultOption = document.createElement("option");
-                        defaultOption.value = "";
-                        defaultOption.text = "Pilih Penyebab Loses";
-                        lossesSelect.prepend(defaultOption);
-                    }
-                    data.losses.forEach(loss => {
-                        const option = document.createElement("option");
-                        option.value = loss.losses_id;
-                        option.text = loss.penyebab_losses;
-                        lossesSelect.appendChild(option);
-                    });
-                }
-            })
-            .catch(error => console.error('Gagal mengambil opsi loses:', error));
-    }
-
-    // Toggle RFID input field visibility
-    function toggleNewRfid(index) {
-        const checkbox = document.getElementById(`update_rfid_${index}`);
-        const newRfidFields = document.getElementById(`updateRfidFields_${index}`);
-        newRfidFields.style.display = checkbox.checked ? 'block' : 'none';
-    }
-
-    // Toggle losses fields visibility
-    function toggleLossesFields(index) {
-        const checkbox = document.getElementById(`update_losses_${index}`);
-        const lossesFields = document.getElementById(`lossesFields_${index}`);
-        lossesFields.style.display = checkbox.checked ? 'block' : 'none';
-    }
-
-    // Add event listener to the No Titik Tanam input field
-    document.getElementById('no_titik_tanam').addEventListener('change', function() {
-        if (!this.value) {
-            document.getElementById('tanaman-container').innerHTML = '';
+        // Toggle RFID input field visibility
+        function toggleNewRfid(index) {
+            const checkbox = document.getElementById(`update_rfid_${index}`);
+            const newRfidFields = document.getElementById(`updateRfidFields_${index}`);
+            newRfidFields.style.display = checkbox.checked ? 'block' : 'none';
         }
-        autoFillTanamanData();
-    });
 
-    document.getElementById('form-identifikasi-tanaman-update').addEventListener('submit', function(event) {
-        event.preventDefault();
-
-        const formData = new FormData(this);
-
-        console.log('--- Data Formulir yang Akan Dikirim ---');
-        for (let pair of formData.entries()) {
-            console.log(pair[0] + ': ' + pair[1]);
+        // Toggle losses fields visibility
+        function toggleLossesFields(index) {
+            const checkbox = document.getElementById(`update_losses_${index}`);
+            const lossesFields = document.getElementById(`lossesFields_${index}`);
+            lossesFields.style.display = checkbox.checked ? 'block' : 'none';
         }
-        console.log('------------------------------------');
 
-        fetch('<?= base_url('identifikasi-tanaman/updateIdentifikasiTanaman'); ?>', {
-                method: 'POST',
-                body: formData,
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert(data.message);
-                    window.location.reload();
-                } else {
-                    alert(data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Terjadi kesalahan saat mengirim formulir:', error);
-                alert('Terjadi kesalahan saat pengiriman. Mohon coba lagi.');
-            });
-    });
-
-    // disable Enter on update form
-    document.addEventListener('DOMContentLoaded', () => {
-        const form = document.getElementById('form-identifikasi-tanaman-update');
-        form.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' || e.keyCode === 13) {
-                e.preventDefault();
-                return false;
+        // Add event listener to the No Titik Tanam input field
+        document.getElementById('no_titik_tanam').addEventListener('change', function() {
+            if (!this.value) {
+                document.getElementById('tanaman-container').innerHTML = '';
             }
+            autoFillTanamanData();
         });
-    });
+
+        document.getElementById('form-identifikasi-tanaman-update').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const formData = new FormData(this);
+
+            console.log('--- Data Formulir yang Akan Dikirim ---');
+            for (let pair of formData.entries()) {
+                console.log(pair[0] + ': ' + pair[1]);
+            }
+            console.log('------------------------------------');
+
+            fetch('<?= base_url('identifikasi-tanaman/updateIdentifikasiTanaman'); ?>', {
+                    method: 'POST',
+                    body: formData,
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        window.location.reload();
+                    } else {
+                        alert(data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Terjadi kesalahan saat mengirim formulir:', error);
+                    alert('Terjadi kesalahan saat pengiriman. Mohon coba lagi.');
+                });
+        });
+
+        // disable Enter on update form
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('form-identifikasi-tanaman-update');
+            form.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.keyCode === 13) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+        });
     </script>
 </body>
 

@@ -532,7 +532,6 @@ class IdentifikasiTanamanController extends ResourceController
 
         if ($aktivitasId === null) {
             // If no 'seleksi' activity is found, return an error
-            log_message('error', 'No tipe aktivitas found with nama_aktivitas = "seleksi"');
             return $this->response->setJSON(['success' => false, 'error' => 'No tipe aktivitas "seleksi" found.']);
         }
 
@@ -544,6 +543,40 @@ class IdentifikasiTanamanController extends ResourceController
 
         // Call the model method with noTitikTanam, hsId, and aktivitasId
         $activeTanaman = $tanamanModel->getNoActiveTanamDataSeleksi($noTitikTanam, $hsId, $aktivitasId);
+
+        // If active tanaman data exists, process it
+        if ($activeTanaman) {
+
+            // Process the data to handle null RFID
+            foreach ($activeTanaman as &$tanaman) {
+                // If RFID is null, replace it with an empty string
+                if (is_null($tanaman['rfid_tanaman'])) {
+                    $tanaman['rfid_tanaman'] = '';  // Set empty string instead of 'belum ada RFID'
+                }
+            }
+
+            // Return the response with the modified data
+            return $this->response->setJSON(['success' => true, 'tanaman' => $activeTanaman]);
+        } else {
+            return $this->response->setJSON(['success' => false, 'error' => 'Tidak ada data tanaman aktif ditemukan.']);
+        }
+    }
+
+    public function getActiveTanamanDataUpdate($noTitikTanam)
+    {
+
+        // Get ptEstateId and blokId from the request
+        $ptEstateId = $this->request->getVar('pt_estate_id');
+        $blokId = $this->request->getVar('blok_id');
+
+        // Get hsId based on ptEstateId and blokId
+        $hsId = $this->getHsIdByPtEstateAndBlok($ptEstateId, $blokId);
+
+        // Load the TanamanModel
+        $tanamanModel = new TanamanModel();
+
+        // Call the model method with noTitikTanam, hsId, and aktivitasId
+        $activeTanaman = $tanamanModel->getNoActiveTanamDataUpdate($noTitikTanam, $hsId);
 
         // If active tanaman data exists, process it
         if ($activeTanaman) {
@@ -590,6 +623,10 @@ class IdentifikasiTanamanController extends ResourceController
         $updateRfidCheckboxes = $data['update_rfid'] ?? [];
         $updateLossesCheckboxes = $data['update_losses'] ?? [];
 
+        // Get the NPK and nama_karyawan from the post data
+        $npk = $this->request->getPost('npk');
+        $nama_karyawan = $this->request->getPost('nama');
+
         $hsId = $this->getHsIdByPtEstateAndBlok($ptEstateId, $blokId);
 
         if ($hsId === null) {
@@ -607,7 +644,7 @@ class IdentifikasiTanamanController extends ResourceController
             $currentRfid = $rfidTanamanArray[$index] ?? null;
 
             if (empty($tanamanIdToUpdate)) {
-                continue; // Lewati jika ID tanaman kosong
+                continue; // Skip if Tanaman ID is empty
             }
 
             $tanamanData = [];
@@ -629,34 +666,50 @@ class IdentifikasiTanamanController extends ResourceController
                     }
                     $rfidToUse = $newRfidValue;
                 }
-            }
-            $tanamanData['rfid_tanaman'] = $rfidToUse;
 
+                // Update npk and nama_karyawan if RFID is updated
+                $tanamanData['npk'] = $npk;
+                $tanamanData['nama_karyawan'] = $nama_karyawan;
+            }
+
+            $tanamanData['rfid_tanaman'] = $rfidToUse;
 
             // --- Logika untuk update Losses ---
             $isUpdateLossesChecked = isset($updateLossesCheckboxes[$index]) && $updateLossesCheckboxes[$index] === 'on';
             $lsId = $lossesIdArray[$index] ?? null;
-            $deskripsi = $deskripsiLosesArray[$index] ?? ''; // Pastikan ini string kosong jika tidak ada input
+            $deskripsi = $deskripsiLosesArray[$index] ?? ''; // Ensure it's an empty string if no input
 
-            if ($isUpdateLossesChecked && $lsId !== null) {
-                $tanamanData['is_loses'] = 'Y';
-                $tanamanData['losses_id'] = $lsId;
-                $tanamanData['deskripsi_loses'] = $deskripsi;
-                $tanamanData['tgl_akhir_identifikasi'] = $currentTime;
-                $tanamanData['status_id'] = 2; // Ganti dengan ID status 'Loses' Anda yang sebenarnya
-            } else {
-                // Logika untuk mereset loses jika checkbox tidak dicentang atau lsId null
-                $currentTanamanStatus = $tanamanModel->find($tanamanIdToUpdate);
-                if ($currentTanamanStatus && $currentTanamanStatus['is_loses'] === 'Y') {
-                    $tanamanData['is_loses'] = 'N';
-                    $tanamanData['losses_id'] = null;
-                    $tanamanData['deskripsi_loses'] = null;
-                    $tanamanData['tgl_akhir_identifikasi'] = null;
-                    $tanamanData['status_id'] = 1; // Ganti dengan ID status 'Aktif' Anda yang sebenarnya
+            // Fetch the "losses" aktivitas_id from the database
+            $aktivitasModel = new TipeAktivitasModel();
+            $lossesAktivitas = $aktivitasModel->where('LOWER(nama_aktivitas)', 'losses')->first();
+
+            if ($lossesAktivitas) {
+                $lossesAktivitasId = $lossesAktivitas['aktivitas_id'];  // Get the aktivitas_id for "losses"
+
+                // Check if the losses checkbox is checked and if losses_id is provided
+                if ($isUpdateLossesChecked && $lsId !== null) {
+                    $tanamanData['losses_id'] = $lsId;
+                    $tanamanData['deskripsi_loses'] = $deskripsi;
+                    $tanamanData['aktivitas_id'] = $lossesAktivitasId;  // Set the aktivitas_id for "losses"
+                    $tanamanData['tgl_akhir_identifikasi'] = $currentTime;  // Set the end date for the identification
+
+                    // Update npk and nama_karyawan if losses is updated
+                    $tanamanData['npk'] = $npk;
+                    $tanamanData['nama_karyawan'] = $nama_karyawan;
+                } else {
+                    // Reset loses if checkbox is not checked or lsId is null
+                    $currentTanamanStatus = $tanamanModel->find($tanamanIdToUpdate);
+                    if ($currentTanamanStatus) {
+                        $tanamanData['losses_id'] = null;
+                        $tanamanData['deskripsi_loses'] = null;
+                        $tanamanData['tgl_akhir_identifikasi'] = null;
+                    }
                 }
             }
 
+            // Update the tanaman record
             $updateResult = $tanamanModel->update($tanamanIdToUpdate, $tanamanData);
+            log_message('Info', 'Tanaman Model :' . json_encode($tanamanData));
 
             if (!$updateResult) {
                 log_message('error', 'Failed to update Tanaman ID ' . $tanamanIdToUpdate . '. Errors: ' . json_encode($tanamanModel->errors()));

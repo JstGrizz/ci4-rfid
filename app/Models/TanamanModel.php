@@ -52,6 +52,30 @@ class TanamanModel extends Model
         return $query->findAll();
     }
 
+    public function getNoActiveTanamDataUpdate($noTitikTanam, $hsId)
+    {
+        // Build the query with columns in an array
+        $query = $this->select([
+            'tanaman.tanaman_id',
+            'tanaman.rfid_tanaman',
+            'tanaman.sister',
+            'tanaman.status_id',
+            'status.nama_status',
+            'tipe_aktivitas.nama_aktivitas',
+            'tipe_aktivitas.aktivitas_id',
+        ])
+            ->join('status', 'tanaman.status_id = status.status_id')
+            ->join('hectare_statement', 'tanaman.hs_id = hectare_statement.hs_id') // Join hectare_statement
+            ->join('tipe_aktivitas', 'tanaman.aktivitas_id = tipe_aktivitas.aktivitas_id') // Join tipe_aktivitas
+            ->where('tanaman.no_titik_tanam', $noTitikTanam)
+            ->where('tanaman.hs_id', $hsId)  // Add hs_id to the condition
+            ->where('tanaman.tgl_mulai_identifikasi IS NOT NULL')
+            ->where('tanaman.tgl_akhir_identifikasi IS NULL');
+
+        // Execute and return the results
+        return $query->findAll();
+    }
+
     public function fetchLatestStatusForTitikTanam($longitudeTanam, $latitudeTanam, $noTitikTanam, $hsId)
     {
         return $this->select('status_id')

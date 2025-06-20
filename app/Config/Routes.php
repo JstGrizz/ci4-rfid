@@ -203,12 +203,13 @@ $routes->group('', ['filter' => 'authFilter'], function ($routes) {
     $routes->get('identifikasi-tanaman/fetchSister', 'IdentifikasiTanamanController::fetchSister');
     $routes->post('identifikasi-tanaman/insertTanamanDataSeleksi', 'IdentifikasiTanamanController::insertTanamanDataSeleksi');
     $routes->post('identifikasi-tanaman/insertTanamanDataShooting', 'IdentifikasiTanamanController::insertTanamanDataShooting');
+    $routes->get('identifikasi-tanaman/getActiveTanamanDataSeleksi/(:num)', 'IdentifikasiTanamanController::getActiveTanamanDataSeleksi/$1');
 
     #--------------------------------------------------------------------
     # IDENTIFIKASI TANAMAN - UPDATE
     #--------------------------------------------------------------------
     $routes->get('identifikasi-tanaman/update', 'IdentifikasiTanamanController::viewEdit');
-    $routes->get('identifikasi-tanaman/getActiveTanamanDataSeleksi/(:num)', 'IdentifikasiTanamanController::getActiveTanamanDataSeleksi/$1');
+    $routes->get('identifikasi-tanaman/getActiveTanamanDataUpdate/(:num)', 'IdentifikasiTanamanController::getActiveTanamanDataUpdate/$1');
     $routes->get('identifikasi-tanaman/getLossesOptions', 'IdentifikasiTanamanController::getLossesOptions');
     $routes->post('identifikasi-tanaman/updateIdentifikasiTanaman', 'IdentifikasiTanamanController::updateIdentifikasiTanaman');
 
