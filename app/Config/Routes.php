@@ -201,8 +201,8 @@ $routes->group('', ['filter' => 'authFilter'], function ($routes) {
     $routes->get('identifikasi-tanaman/getNoTitikTanamData/(:num)/(:num)/(:num)', 'IdentifikasiTanamanController::getNoTitikTanamData/$1/$2/$3');
     $routes->get('identifikasi-tanaman/getTanamanStatus/(:segment)/(:segment)/(:segment)/(:segment)/(:segment)', 'IdentifikasiTanamanController::getTanamanStatus/$1/$2/$3/$4/$5');
     $routes->get('identifikasi-tanaman/fetchSister', 'IdentifikasiTanamanController::fetchSister');
-    $routes->post('identifikasi-tanaman/insertTanamanData', 'IdentifikasiTanamanController::insertTanamanData');
-
+    $routes->post('identifikasi-tanaman/insertTanamanDataSeleksi', 'IdentifikasiTanamanController::insertTanamanDataSeleksi');
+    $routes->post('identifikasi-tanaman/insertTanamanDataShooting', 'IdentifikasiTanamanController::insertTanamanDataShooting');
 
     #--------------------------------------------------------------------
     # IDENTIFIKASI TANAMAN - UPDATE
