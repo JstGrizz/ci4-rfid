@@ -656,6 +656,10 @@ class IdentifikasiTanamanController extends ResourceController
             if ($isUpdateRfidChecked) {
                 $newRfidValue = $newRfidArray[$index] ?? '';
                 if (!empty($newRfidValue)) {
+                    // Ensure it's a string
+                    $newRfidValue = (string)$newRfidValue;  // Convert the RFID to string
+
+                    // Check if the RFID is already used
                     $existingNewRfid = $tanamanModel
                         ->where('rfid_tanaman', $newRfidValue)
                         ->where('tgl_akhir_identifikasi', null)
@@ -664,6 +668,7 @@ class IdentifikasiTanamanController extends ResourceController
                     if ($existingNewRfid && $existingNewRfid['tanaman_id'] != $tanamanIdToUpdate) {
                         return $this->response->setJSON(['success' => false, 'message' => 'RFID ' . $newRfidValue . ' sudah terdaftar di tanaman yang aktif, tolong diganti.']);
                     }
+
                     $rfidToUse = $newRfidValue;
                 }
 
@@ -709,7 +714,6 @@ class IdentifikasiTanamanController extends ResourceController
 
             // Update the tanaman record
             $updateResult = $tanamanModel->update($tanamanIdToUpdate, $tanamanData);
-            log_message('Info', 'Tanaman Model :' . json_encode($tanamanData));
 
             if (!$updateResult) {
                 log_message('error', 'Failed to update Tanaman ID ' . $tanamanIdToUpdate . '. Errors: ' . json_encode($tanamanModel->errors()));
