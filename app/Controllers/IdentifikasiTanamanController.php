@@ -684,31 +684,22 @@ class IdentifikasiTanamanController extends ResourceController
             $lsId = $lossesIdArray[$index] ?? null;
             $deskripsi = $deskripsiLosesArray[$index] ?? ''; // Ensure it's an empty string if no input
 
-            // Fetch the "losses" aktivitas_id from the database
-            $aktivitasModel = new TipeAktivitasModel();
-            $lossesAktivitas = $aktivitasModel->where('LOWER(nama_aktivitas)', 'losses')->first();
+            // Check if the losses checkbox is checked and if losses_id is provided
+            if ($isUpdateLossesChecked && $lsId !== null) {
+                $tanamanData['losses_id'] = $lsId;
+                $tanamanData['deskripsi_loses'] = $deskripsi;
+                $tanamanData['tgl_akhir_identifikasi'] = $currentTime;  // Set the end date for the identification
 
-            if ($lossesAktivitas) {
-                $lossesAktivitasId = $lossesAktivitas['aktivitas_id'];  // Get the aktivitas_id for "losses"
-
-                // Check if the losses checkbox is checked and if losses_id is provided
-                if ($isUpdateLossesChecked && $lsId !== null) {
-                    $tanamanData['losses_id'] = $lsId;
-                    $tanamanData['deskripsi_loses'] = $deskripsi;
-                    $tanamanData['aktivitas_id'] = $lossesAktivitasId;  // Set the aktivitas_id for "losses"
-                    $tanamanData['tgl_akhir_identifikasi'] = $currentTime;  // Set the end date for the identification
-
-                    // Update npk and nama_karyawan if losses is updated
-                    $tanamanData['npk'] = $npk;
-                    $tanamanData['nama_karyawan'] = $nama_karyawan;
-                } else {
-                    // Reset loses if checkbox is not checked or lsId is null
-                    $currentTanamanStatus = $tanamanModel->find($tanamanIdToUpdate);
-                    if ($currentTanamanStatus) {
-                        $tanamanData['losses_id'] = null;
-                        $tanamanData['deskripsi_loses'] = null;
-                        $tanamanData['tgl_akhir_identifikasi'] = null;
-                    }
+                // Update npk and nama_karyawan if losses is updated
+                $tanamanData['npk'] = $npk;
+                $tanamanData['nama_karyawan'] = $nama_karyawan;
+            } else {
+                // Reset loses if checkbox is not checked or lsId is null
+                $currentTanamanStatus = $tanamanModel->find($tanamanIdToUpdate);
+                if ($currentTanamanStatus) {
+                    $tanamanData['losses_id'] = null;
+                    $tanamanData['deskripsi_loses'] = null;
+                    $tanamanData['tgl_akhir_identifikasi'] = null;
                 }
             }
 
