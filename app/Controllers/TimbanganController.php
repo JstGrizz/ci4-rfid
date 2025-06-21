@@ -11,6 +11,7 @@ use App\Models\StatusModel;
 use App\Models\HectareStatementModel;
 use App\Models\RfidGroupModel;
 use App\Models\TimbanganModel;
+use App\Models\TipeAktivitasModel;
 
 class TimbanganController extends ResourceController
 {
@@ -132,6 +133,17 @@ class TimbanganController extends ResourceController
             ]);
         }
 
+        // Fetch the "losses" aktivitas_id from the database
+        $aktivitasModel = new TipeAktivitasModel();
+        $PanenAktivitas = $aktivitasModel->where('LOWER(nama_aktivitas)', 'panen')->first();
+
+        if (!$PanenAktivitas) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Tipe Aktivitas Panen Tidak Ditemukan.',
+            ]);
+        }
+
         $data = [
             'tgl_transaksi' => $tglTransaksi,
             'rfid_tanaman' => $rfidTanaman,
@@ -143,7 +155,11 @@ class TimbanganController extends ResourceController
 
         if ($timbanganModel->insert($data)) {
             // Update the tanaman table
-            $updateData = ['tgl_akhir_identifikasi' => $tglTransaksi];
+            $updateData = [
+                'tgl_akhir_identifikasi' => $tglTransaksi,
+                'aktivitas_id' => $PanenAktivitas['aktivitas_id']
+            ];
+
             $updateResult = $tanamanModel->update($tanaman['tanaman_id'], $updateData);
 
             if ($updateResult) {
