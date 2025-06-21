@@ -8,6 +8,6 @@ class TimbanganModel extends Model
 {
     protected $table = 'timbangan';
     protected $primaryKey = 'transaksi_id';
-    protected $allowedFields = ['tgl_transaksi', 'hs_id', 'status_id', 'berat_timbangan', 'rfid_tanaman', 'group_id'];
+    protected $allowedFields = ['tgl_transaksi', 'hs_id', 'status_id', 'berat_timbangan', 'rfid_tanaman', 'group_id', 'tanaman_id'];
     protected $returnType = 'array';
 }

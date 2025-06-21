@@ -18,6 +18,11 @@ class CreateTimbanganTable extends Migration
                 'type' => 'DATETIME',
                 'null' => false,
             ],
+            'tanaman_id' => [
+                'type' => 'INT',
+                'unsigned' => true,
+                'null' => true,
+            ],
             'hs_id' => [
                 'type' => 'INT',
                 'unsigned' => true,
@@ -49,6 +54,7 @@ class CreateTimbanganTable extends Migration
         $this->forge->addForeignKey('hs_id', 'hectare_statement', 'hs_id', 'CASCADE', 'CASCADE');
         $this->forge->addForeignKey('status_id', 'status', 'status_id', 'CASCADE', 'CASCADE');
         $this->forge->addForeignKey('group_id', 'group_karyawan', 'group_id', 'CASCADE', 'CASCADE');
+        $this->forge->addForeignKey('tanaman_id', 'tanaman', 'tanaman_id', 'CASCADE', 'CASCADE'); // Add foreign key for tanaman_id
 
         $this->forge->createTable('timbangan');
     }
