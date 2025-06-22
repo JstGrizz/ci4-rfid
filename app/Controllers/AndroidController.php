@@ -15,6 +15,7 @@ use App\Models\StatusModel;
 use App\Models\HectareStatementModel;
 use App\Models\TimbanganModel;
 use App\Models\TanamanModel;
+use App\Models\TipeAktivitasModel;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use CodeIgniter\RESTful\ResourceController;
@@ -112,6 +113,7 @@ class AndroidController extends ResourceController
         $hectareStatementModel = new HectareStatementModel();
         $timbanganModel = new TimbanganModel();
         $tanamanModel = new TanamanModel();
+        $tipeAktivitasModel = new TipeAktivitasModel();
 
         $data = [
             'lokasi' => $lokasiModel->findAll(),
@@ -127,6 +129,7 @@ class AndroidController extends ResourceController
             'hectare_statement' => $hectareStatementModel->findAll(),
             'timbangan' => $timbanganModel->findAll(),
             'tanaman' => $tanamanModel->findAll(),
+            'tipe_aktivitas' => $tipeAktivitasModel->findAll(),
         ];
 
         return $this->respond([
