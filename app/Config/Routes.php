@@ -247,12 +247,11 @@ $routes->group('', ['filter' => 'authFilter'], function ($routes) {
 
 
     #--------------------------------------------------------------------
-    # LAPORAN HISTORY LOSSES
+    # LAPORAN IDENTIFIKASI TANAMAN
     #--------------------------------------------------------------------
 
     $routes->get('laporan/identifikasi-tanaman', 'LaporanController::laporanIdentifikasiTanaman');
-    $routes->get('laporan/history-losses/data', 'LaporanController::fetchHistoryLossesReport');
-    $routes->get('laporan/history-losses/data-all', 'LaporanController::fetchAllHistoryLossesReport');
+    $routes->get('laporan/identifikasi-tanaman/fetch', 'LaporanController::fetchReportIdentifikasiTanaman');
     $routes->get('laporan/history-losses/downloadExcel', 'LaporanController::downloadHistoryLossesExcel');
     $routes->get('laporan/history-losses/downloadPdf',   'LaporanController::downloadHistoryLossesPdf');
 

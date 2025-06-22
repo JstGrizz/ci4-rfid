@@ -13,6 +13,7 @@ use App\Models\StatusModel;
 use App\Models\MasterLossesModel;
 use App\Models\HistoryLossesModel;
 use Fpdf\Fpdf;
+use App\Models\ReportIdentifikasiTanamanModel;
 
 
 class LaporanController extends ResourceController
@@ -447,154 +448,52 @@ class LaporanController extends ResourceController
         return $this->response->setJSON($report);
     }
 
-    public function laporanHistoryLosses()
+    public function laporanIdentifikasiTanaman()
     {
-        $tanamanModel = new \App\Models\TanamanModel();
-        $historyLossesModel = new \App\Models\HistoryLossesModel();
-        $hectareStatementModel = new HectareStatementModel();
-        $masterBlokModel = new MasterBlokModel();
+        // Sinkronisasi seluruh data tanaman ke report_identifikasi_tanaman
+        (new ReportIdentifikasiTanamanModel())->syncFromTanaman();
 
-        // Sync tanaman with history_losses (only those with tgl_akhir_identifikasi IS NOT NULL and is_loses = 'Y')
-        $tanamans = $tanamanModel
-            ->where('tgl_akhir_identifikasi IS NOT NULL', null, false)
-            ->where('is_loses', 'Y')
-            ->findAll();
-
-        foreach ($tanamans as $t) {
-            $exists = $historyLossesModel->where('tanaman_id', $t['tanaman_id'])->first();
-            if (!$exists) {
-                $dataToInsert = $t;
-                unset($dataToInsert['tanaman_id']); // remove PK so it can auto-increment
-                $dataToInsert['tanaman_id'] = $t['tanaman_id'];
-                $historyLossesModel->insert($dataToInsert);
-            }
-        }
-
-        // Prepare dropdown data (PT & Estate)
-        $data['ptEstates'] = $hectareStatementModel->getUniquePtEstates();
-
-        // Default empty values for form fields
-        $data['pt'] = '';
-        $data['estate'] = '';
-        $data['bloks'] = [];
-        $data['tahun_tanam'] = '';
-        $data['bulan_tanam'] = '';
-        $data['luas_tanah'] = '';
-        $data['week'] = '';
-        $data['varian_bibit'] = '';
-
-        return view('admin/laporan-history-losses', $data);
+        return view('admin/laporan-identifikasi-tanaman');
     }
 
-    public function fetchHistoryLossesReport()
+    /**
+     * Endpoint AJAX untuk fetch data laporan berdasarkan tanggal & tipe.
+     * GET params: start_date, end_date, report_type = [losses|recovery]
+     */
+    public function fetchReportIdentifikasiTanaman()
     {
-        $historyLossesModel = new \App\Models\HistoryLossesModel();
-        $statusModel = new \App\Models\StatusModel();
-        $lossesModel = new \App\Models\MasterLossesModel();
+        $start = $this->request->getGet('start_date');
+        $end   = $this->request->getGet('end_date');
+        $type  = $this->request->getGet('report_type');
 
-        // Get all statuses and build map id => nama_status
-        $allStatuses = $statusModel->findAll();
-        $statusMap = [];
-        foreach ($allStatuses as $s) {
-            $statusMap[$s['status_id']] = $s['nama_status'];
+        $m = new \App\Models\ReportIdentifikasiTanamanModel();
+        $data = [];
+
+        switch ($type) {
+            case 'losses_estate':
+                $data = $m->getLossesByEstate($start, $end);
+                break;
+            case 'losses_block':
+                $data = $m->getLossesByBlock($start, $end);
+                break;
+            case 'losses_titik':
+                $data = $m->getLossesByTitik($start, $end);
+                break;
+            case 'recovery_estate':
+                $data = $m->getRecoveryByEstate($start, $end);
+                break;
+            case 'recovery_block':
+                $data = $m->getRecoveryByBlock($start, $end);
+                break;
+            case 'recovery_titik':
+                $data = $m->getRecoveryByTitik($start, $end);
+                break;
         }
 
-        // Get all master losses and build map id => penyebab_losses
-        $allLosses = $lossesModel->getAllMasterLosses();
-        $lossesMap = [];
-        foreach ($allLosses as $l) {
-            $lossesMap[$l['losses_id']] = $l['penyebab_losses'];
-        }
-
-        // Fetch all history losses
-        $historyLosses = $historyLossesModel->findAll();
-
-        $hectareStatementModel = new \App\Models\HectareStatementModel();
-
-        $report = [];
-        foreach ($historyLosses as $record) {
-            // Join with hectare statement to get pt and estate
-            $hs = $hectareStatementModel->select('hectare_statement.*, pt_estate.pt, pt_estate.estate')
-                ->join('pt_estate', 'pt_estate.pt_estate_id = hectare_statement.pt_estate_id', 'left')
-                ->where('hs_id', $record['hs_id'])
-                ->first();
-
-            if (!$hs) continue;
-
-            $report[] = [
-                'tgl_mulai_identifikasi' => $record['tgl_mulai_identifikasi'],
-                'pt' => $hs['pt'] ?? '-',
-                'estate' => $hs['estate'] ?? '-',
-                'rfid_tanaman' => $record['rfid_tanaman'],
-                'no_titik_tanam' => $record['no_titik_tanam'],
-                'longitude_tanam' => $record['longitude_tanam'],
-                'latitude_tanam' => $record['latitude_tanam'],
-                'status' => $statusMap[$record['status_id']] ?? '-',
-                'sister' => $record['sister'],
-                'penyebab_losses' => $lossesMap[$record['losses_id']] ?? '-',
-                'deskripsi_loses' => $record['deskripsi_loses'],
-                'tgl_akhir_identifikasi' => $record['tgl_akhir_identifikasi'],
-            ];
-        }
-
-        return $this->response->setJSON($report);
+        return $this->response->setJSON($data);
     }
 
-    public function fetchAllHistoryLossesReport()
-    {
-        $historyLossesModel = new \App\Models\HistoryLossesModel();
-        $statusModel = new \App\Models\StatusModel();
-        $lossesModel = new \App\Models\MasterLossesModel();
 
-        // Get all statuses and build map id => nama_status
-        $allStatuses = $statusModel->findAll();
-        $statusMap = [];
-        foreach ($allStatuses as $s) {
-            $statusMap[$s['status_id']] = $s['nama_status'];
-        }
-
-        // Get all master losses and build map id => penyebab_losses
-        $allLosses = $lossesModel->getAllMasterLosses();
-        $lossesMap = [];
-        foreach ($allLosses as $l) {
-            $lossesMap[$l['losses_id']] = $l['penyebab_losses'];
-        }
-
-        // Fetch all history losses without filtering
-        $historyLosses = $historyLossesModel->findAll();
-
-        $hectareStatementModel = new \App\Models\HectareStatementModel();
-
-        $report = [];
-        foreach ($historyLosses as $record) {
-            // Join with hectare statement to get pt and estate
-            $hs = $hectareStatementModel->select('hectare_statement.*, pt_estate.pt, pt_estate.estate')
-                ->join('pt_estate', 'pt_estate.pt_estate_id = hectare_statement.pt_estate_id', 'left')
-                ->where('hs_id', $record['hs_id'])
-                ->first();
-
-            if (!$hs) continue;
-
-            $report[] = [
-                'tgl_mulai_identifikasi' => $record['tgl_mulai_identifikasi'],
-                'pt' => $hs['pt'] ?? '-',
-                'estate' => $hs['estate'] ?? '-',
-                'rfid_tanaman' => $record['rfid_tanaman'],
-                'no_titik_tanam' => $record['no_titik_tanam'],
-                'longitude_tanam' => $record['longitude_tanam'],
-                'latitude_tanam' => $record['latitude_tanam'],
-                'status' => $statusMap[$record['status_id']] ?? '-',
-                'sister' => $record['sister'],
-                'penyebab_losses' => $lossesMap[$record['losses_id']] ?? '-',
-                'deskripsi_loses' => $record['deskripsi_loses'],
-                'tgl_akhir_identifikasi' => $record['tgl_akhir_identifikasi'],
-            ];
-        }
-
-        return $this->response->setJSON($report);
-    }
-
-    // di App/Controllers/LaporanController.php
 
     public function downloadPanenBulananExcel()
     {
