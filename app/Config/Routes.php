@@ -252,8 +252,8 @@ $routes->group('', ['filter' => 'authFilter'], function ($routes) {
 
     $routes->get('laporan/identifikasi-tanaman', 'LaporanController::laporanIdentifikasiTanaman');
     $routes->get('laporan/identifikasi-tanaman/fetch', 'LaporanController::fetchReportIdentifikasiTanaman');
-    $routes->get('laporan/history-losses/downloadExcel', 'LaporanController::downloadHistoryLossesExcel');
-    $routes->get('laporan/history-losses/downloadPdf',   'LaporanController::downloadHistoryLossesPdf');
+    $routes->get('identifikasi-tanaman/downloadExcel',  'IdentifikasiTanamanController::downloadIdentifikasiTanamanExcel');
+    $routes->get('identifikasi-tanaman/downloadPdf',    'IdentifikasiTanamanController::downloadIdentifikasiTanamanPdf');
 
 
     #--------------------------------------------------------------------

@@ -701,175 +701,238 @@ class LaporanController extends ResourceController
     }
 
     /**
-     * Stream a CSV for History Losses (opens in Excel)
+     * Download Laporan Identifikasi Tanaman sebagai CSV (Excel)
      */
-    public function downloadHistoryLossesExcel()
+    public function downloadIdentifikasiTanamanExcel()
     {
-        $ptEstate = $this->request->getGet('pt_estate');
-        $blok     = $this->request->getGet('blok_id');
+        $start = $this->request->getGet('start_date');
+        $end   = $this->request->getGet('end_date');
+        $type  = $this->request->getGet('report_type');
 
-        // load maps
-        $statusMap  = array_column((new StatusModel())->findAll(), 'nama_status', 'status_id');
-        $lossesMap  = array_column((new MasterLossesModel())->getAllMasterLosses(), 'penyebab_losses', 'losses_id');
-        $hsModel    = new HectareStatementModel();
-        $histModel  = new HistoryLossesModel();
+        $model = new ReportIdentifikasiTanamanModel();
 
-        $outRows = [];
-        foreach ($histModel->findAll() as $rec) {
-            $hs = $hsModel
-                ->select('hectare_statement.*, pt_estate.pt_estate_id, pt_estate.pt, pt_estate.estate, master_blok.blok_id')
-                ->join('pt_estate', 'pt_estate.pt_estate_id=hectare_statement.pt_estate_id', 'left')
-                ->join('master_blok', 'master_blok.blok_id=hectare_statement.blok_id', 'left')
-                ->where('hs_id', $rec['hs_id'])
-                ->first();
-
-            if (! $hs) continue;
-            // apply filter if requested
-            if ($ptEstate && $blok) {
-                if ($hs['pt_estate_id'] != $ptEstate || $hs['blok_id'] != $blok) {
-                    continue;
-                }
-            }
-
-            $outRows[] = [
-                'Tgl Identifikasi'       => $rec['tgl_mulai_identifikasi'],
-                'PT'                    => $hs['pt'],
-                'Estate'                => $hs['estate'],
-                'RFID Tanaman'           => $rec['rfid_tanaman'],
-                'No Titik Tanam'          => $rec['no_titik_tanam'],
-                'Longitude'             => $rec['longitude_tanam'],
-                'Latitude'              => $rec['latitude_tanam'],
-                'Status'                => $statusMap[$rec['status_id']] ?? '-',
-                'Sister'                => $rec['sister'],
-                'Penyebab Losses'        => $lossesMap[$rec['losses_id']] ?? '-',
-                'Deskripsi Losses'       => $rec['deskripsi_loses'],
-                'Tgl Akhir Identifikasi'  => $rec['tgl_akhir_identifikasi'],
-            ];
+        // Pilih data sesuai tipe
+        switch ($type) {
+            case 'losses_estate':
+                $raw = $model->getLossesByEstate($start, $end);
+                break;
+            case 'losses_block':
+                $raw = $model->getLossesByBlock($start, $end);
+                break;
+            case 'losses_titik':
+                $raw = $model->getLossesByTitik($start, $end);
+                break;
+            case 'recovery_estate':
+                $raw = $model->getRecoveryByEstate($start, $end);
+                break;
+            case 'recovery_block':
+                $raw = $model->getRecoveryByBlock($start, $end);
+                break;
+            case 'recovery_titik':
+                $raw = $model->getRecoveryByTitik($start, $end);
+                break;
+            default:
+                $raw = [];
         }
 
-        // CSV download
-        $fname = 'laporan-history-losses_' . date('Ymd_His') . '.csv';
+        // Susun baris CSV sesuai tipe
+        $rows = [];
+        foreach ($raw as $d) {
+            switch ($type) {
+                case 'losses_estate':
+                    $rows[] = [
+                        'PT'             => $d['pt'],
+                        'Estate'         => $d['estate'],
+                        'Jumlah Losses'  => $d['jumlah_losses'],
+                    ];
+                    break;
+                case 'losses_block':
+                    $rows[] = [
+                        'PT'             => $d['pt'],
+                        'Estate'         => $d['estate'],
+                        'Blok'           => $d['nama_blok'],
+                        'Jumlah Losses'  => $d['jumlah_losses'],
+                    ];
+                    break;
+                case 'losses_titik':
+                    $rows[] = [
+                        'PT'             => $d['pt'],
+                        'Estate'         => $d['estate'],
+                        'Blok'           => $d['nama_blok'],
+                        'Titik Tanam'    => $d['no_titik_tanam'],
+                        'Jumlah Losses'  => $d['jumlah_losses'],
+                    ];
+                    break;
+                case 'recovery_estate':
+                    $rows[] = [
+                        'PT'                => $d['pt'],
+                        'Estate'            => $d['estate'],
+                        'Jumlah Recovery'   => $d['jumlah_recovery'],
+                    ];
+                    break;
+                case 'recovery_block':
+                    $rows[] = [
+                        'PT'                => $d['pt'],
+                        'Estate'            => $d['estate'],
+                        'Blok'              => $d['nama_blok'],
+                        'Jumlah Recovery'   => $d['jumlah_recovery'],
+                    ];
+                    break;
+                case 'recovery_titik':
+                    $rows[] = [
+                        'PT'                => $d['pt'],
+                        'Estate'            => $d['estate'],
+                        'Blok'              => $d['nama_blok'],
+                        'Titik Tanam'       => $d['no_titik_tanam'],
+                        'Jumlah Recovery'   => $d['jumlah_recovery'],
+                    ];
+                    break;
+            }
+        }
+
+        // streaming CSV
+        $filename = "laporan_identifikasi_{$type}_" . date('Ymd_His') . '.csv';
         header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="' . $fname . '"');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
         $out = fopen('php://output', 'w');
-        if (!empty($outRows)) {
-            fputcsv($out, array_keys($outRows[0]));
-            foreach ($outRows as $r) fputcsv($out, $r);
+        if (!empty($rows)) {
+            fputcsv($out, array_keys($rows[0]));
+            foreach ($rows as $r) {
+                fputcsv($out, $r);
+            }
         }
         fclose($out);
         exit;
     }
 
     /**
-     * Stream a PDF for History Losses via FPDF
+     * Download Laporan Identifikasi Tanaman sebagai PDF
      */
-    public function downloadHistoryLossesPdf()
+    public function downloadIdentifikasiTanamanPdf()
     {
-        // 1) Read filters
-        $ptEstate = $this->request->getGet('pt_estate');
-        $blok     = $this->request->getGet('blok_id');
+        $start = $this->request->getGet('start_date');
+        $end   = $this->request->getGet('end_date');
+        $type  = $this->request->getGet('report_type');
 
-        // 2) Build the same $outRows as in CSV
-        $statusMap = array_column((new StatusModel())->findAll(), 'nama_status', 'status_id');
-        $lossesMap = array_column((new MasterLossesModel())->getAllMasterLosses(), 'penyebab_losses', 'losses_id');
-        $hsModel   = new HectareStatementModel();
-        $histModel = new HistoryLossesModel();
+        $model = new ReportIdentifikasiTanamanModel();
 
-        $outRows = [];
-        foreach ($histModel->findAll() as $rec) {
-            $hs = $hsModel
-                ->select('hectare_statement.*, pt_estate.pt_estate_id, pt_estate.pt, pt_estate.estate, master_blok.blok_id')
-                ->join('pt_estate', 'pt_estate.pt_estate_id=hectare_statement.pt_estate_id', 'left')
-                ->join('master_blok', 'master_blok.blok_id=hectare_statement.blok_id', 'left')
-                ->where('hs_id', $rec['hs_id'])
-                ->first();
-            if (!$hs) continue;
-            if ($ptEstate && $blok) {
-                if ($hs['pt_estate_id'] != $ptEstate || $hs['blok_id'] != $blok) continue;
-            }
-            $outRows[] = [
-                'Tgl Identifikasi'      => $rec['tgl_mulai_identifikasi'],
-                'PT'                   => $hs['pt'],
-                'Estate'               => $hs['estate'],
-                'RFID Tanaman'          => $rec['rfid_tanaman'],
-                'No Titik Tanam'         => $rec['no_titik_tanam'],
-                'Longitude'            => $rec['longitude_tanam'],
-                'Latitude'             => $rec['latitude_tanam'],
-                'Status'               => $statusMap[$rec['status_id']] ?? '-',
-                'Sister'               => $rec['sister'],
-                'Penyebab Losses'       => $lossesMap[$rec['losses_id']] ?? '-',
-                'Deskripsi Losses'      => $rec['deskripsi_loses'],
-                'Tgl Akhir Identifikasi' => $rec['tgl_akhir_identifikasi'],
-            ];
+        // Pilih data sesuai tipe
+        switch ($type) {
+            case 'losses_estate':
+                $raw = $model->getLossesByEstate($start, $end);
+                break;
+            case 'losses_block':
+                $raw = $model->getLossesByBlock($start, $end);
+                break;
+            case 'losses_titik':
+                $raw = $model->getLossesByTitik($start, $end);
+                break;
+            case 'recovery_estate':
+                $raw = $model->getRecoveryByEstate($start, $end);
+                break;
+            case 'recovery_block':
+                $raw = $model->getRecoveryByBlock($start, $end);
+                break;
+            case 'recovery_titik':
+                $raw = $model->getRecoveryByTitik($start, $end);
+                break;
+            default:
+                $raw = [];
         }
 
-        // 3) Initialize FPDF
+        // Susun baris sama seperti CSV
+        $rows = [];
+        foreach ($raw as $d) {
+            switch ($type) {
+                case 'losses_estate':
+                    $rows[] = [
+                        'PT'             => $d['pt'],
+                        'Estate'         => $d['estate'],
+                        'Jumlah Losses'  => $d['jumlah_losses'],
+                    ];
+                    break;
+                case 'losses_block':
+                    $rows[] = [
+                        'PT'             => $d['pt'],
+                        'Estate'         => $d['estate'],
+                        'Blok'           => $d['nama_blok'],
+                        'Jumlah Losses'  => $d['jumlah_losses'],
+                    ];
+                    break;
+                case 'losses_titik':
+                    $rows[] = [
+                        'PT'             => $d['pt'],
+                        'Estate'         => $d['estate'],
+                        'Blok'           => $d['nama_blok'],
+                        'Titik Tanam'    => $d['no_titik_tanam'],
+                        'Jumlah Losses'  => $d['jumlah_losses'],
+                    ];
+                    break;
+                case 'recovery_estate':
+                    $rows[] = [
+                        'PT'                => $d['pt'],
+                        'Estate'            => $d['estate'],
+                        'Jumlah Recovery'   => $d['jumlah_recovery'],
+                    ];
+                    break;
+                case 'recovery_block':
+                    $rows[] = [
+                        'PT'                => $d['pt'],
+                        'Estate'            => $d['estate'],
+                        'Blok'              => $d['nama_blok'],
+                        'Jumlah Recovery'   => $d['jumlah_recovery'],
+                    ];
+                    break;
+                case 'recovery_titik':
+                    $rows[] = [
+                        'PT'                => $d['pt'],
+                        'Estate'            => $d['estate'],
+                        'Blok'              => $d['nama_blok'],
+                        'Titik Tanam'       => $d['no_titik_tanam'],
+                        'Jumlah Recovery'   => $d['jumlah_recovery'],
+                    ];
+                    break;
+            }
+        }
+
+        // Buat PDF
         $pdf = new Fpdf('L', 'mm', 'A4');
-        $pdf->SetMargins(8, 8);
+        $pdf->SetMargins(10, 10);
         $pdf->AddPage();
         $pdf->SetFont('Arial', 'B', 14);
-        $pdf->Cell(0, 8, 'Laporan History Losses', 0, 1, 'C');
+        $pdf->Cell(0, 10, 'Laporan Identifikasi Tanaman', 0, 1, 'C');
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->Cell(0, 6, "Periode: " . date('d-m-Y', strtotime($start)) . " s/d " . date('d-m-Y', strtotime($end)), 0, 1, 'C');
         $pdf->Ln(4);
 
-        // if no data, just print message
-        if (empty($outRows)) {
+        if (empty($rows)) {
             $pdf->SetFont('Arial', 'I', 12);
-            $pdf->Cell(0, 8, 'Tidak ada data.', 1, 1, 'C');
-            $pdf->Output('D', 'laporan-history-losses_' . date('Ymd_His') . '.pdf');
-            exit;
-        }
+            $pdf->Cell(0, 10, 'Tidak ada data untuk periode ini.', 1, 1, 'C');
+        } else {
+            // Header table
+            $header = array_keys($rows[0]);
+            $usableW = $pdf->GetPageWidth() - 20;
+            $colW = $usableW / count($header);
 
-        // 4) Prepare dynamic column widths
-        $header    = array_keys($outRows[0]);
-        $numCols   = count($header);
-        // available width = page width minus left & right margins
-        $availableWidth = $pdf->GetPageWidth() - 2 * $pdf->GetX();
-        $cellPadding    = 4; // mm of horizontal padding
-
-        // 4a) measure max string width per column (header + all rows)
-        $maxWidths = array_fill(0, $numCols, 0);
-        $pdf->SetFont('Arial', 'B', 9);
-        foreach ($header as $i => $colTitle) {
-            $w = $pdf->GetStringWidth($colTitle) + $cellPadding;
-            if ($w > $maxWidths[$i]) $maxWidths[$i] = $w;
-        }
-        $pdf->SetFont('Arial', '', 8);
-        foreach ($outRows as $row) {
-            foreach (array_values($row) as $i => $cell) {
-                $w = $pdf->GetStringWidth((string)$cell) + $cellPadding;
-                if ($w > $maxWidths[$i]) $maxWidths[$i] = $w;
-            }
-        }
-
-        // 4b) scale so total exactly fits availableWidth
-        $totalReq = array_sum($maxWidths);
-        if ($totalReq > $availableWidth) {
-            $scale = $availableWidth / $totalReq;
-            foreach ($maxWidths as &$mw) {
-                $mw = $mw * $scale;
-            }
-            unset($mw);
-        }
-
-        // 5) Draw header row
-        $pdf->SetFont('Arial', 'B', 9);
-        $pdf->SetFillColor(230, 230, 230);
-        foreach ($header as $i => $colTitle) {
-            $pdf->Cell($maxWidths[$i], 7, $colTitle, 1, 0, 'C', true);
-        }
-        $pdf->Ln();
-
-        // 6) Draw data rows
-        $pdf->SetFont('Arial', '', 8);
-        foreach ($outRows as $row) {
-            foreach (array_values($row) as $i => $cell) {
-                $pdf->Cell($maxWidths[$i], 6, $cell, 1);
+            $pdf->SetFont('Arial', 'B', 10);
+            $pdf->SetFillColor(230, 230, 230);
+            foreach ($header as $col) {
+                $pdf->Cell($colW, 7, $col, 1, 0, 'C', true);
             }
             $pdf->Ln();
+
+            // Data rows
+            $pdf->SetFont('Arial', '', 9);
+            foreach ($rows as $row) {
+                foreach ($row as $cell) {
+                    $pdf->Cell($colW, 6, $cell, 1);
+                }
+                $pdf->Ln();
+            }
         }
 
-        // 7) Output
-        $pdf->Output('D', 'laporan-history-losses_' . date('Ymd_His') . '.pdf');
+        $filename = "laporan_identifikasi_{$type}_" . date('Ymd_His') . '.pdf';
+        $pdf->Output('D', $filename);
         exit;
     }
 

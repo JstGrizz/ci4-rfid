@@ -146,12 +146,13 @@
 
     <script src="<?= base_url('/assets/extensions/simple-datatables/umd/simple-datatables.js'); ?>"></script>
     <script src="<?= base_url('/assets/static/js/pages/simple-datatables.js'); ?>"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         const baseUrl = '<?= base_url() ?>/';
 
-        // 1) Render header tabel sesuai tipe laporan
+        // 1) Bangun header tabel sesuai tipe laporan
         function renderTableHeader(type) {
-            var map = {
+            const map = {
                 losses_estate: ['PT', 'Estate', 'Jumlah Losses'],
                 losses_block: ['PT', 'Estate', 'Blok', 'Jumlah Losses'],
                 losses_titik: ['PT', 'Estate', 'Blok', 'Titik Tanam', 'Jumlah Losses'],
@@ -159,17 +160,15 @@
                 recovery_block: ['PT', 'Estate', 'Blok', 'Jumlah Recovery'],
                 recovery_titik: ['PT', 'Estate', 'Blok', 'Titik Tanam', 'Jumlah Recovery'],
             };
-            var headers = map[type] || [];
-            var $tr = $('<tr>');
-            headers.forEach(function(h) {
-                $tr.append('<th>' + h + '</th>');
-            });
+            const headers = map[type] || [];
+            const $tr = $('<tr>');
+            headers.forEach(h => $tr.append(`<th>${h}</th>`));
             $('#reportTableHeader').html($tr);
         }
 
-        // 2) Ambil data laporan via AJAX
+        // 2) Fetch & render data
         function fetchReportData() {
-            var start = $('#start_date').val(),
+            const start = $('#start_date').val(),
                 end = $('#end_date').val(),
                 type = $('#report_type').val();
 
@@ -177,58 +176,63 @@
                 return alert('Mohon lengkapi semua pilihan.');
             }
 
-            $.getJSON(baseUrl + '/laporan/identifikasi-tanaman/fetch', {
+            $.getJSON(`${baseUrl}identifikasi-tanaman/fetchReportIdentifikasiTanaman`, {
                     start_date: start,
                     end_date: end,
                     report_type: type
                 })
-                .done(function(resp) {
+                .done(resp => {
                     renderTableHeader(type);
-                    var $body = $('#dataResults').empty();
+                    const $body = $('#dataResults').empty();
 
                     if (!resp.length) {
-                        var colspan = $('#reportTableHeader th').length || 1;
-                        $body.html(
-                            '<tr><td colspan="' + colspan + '" class="text-center">Tidak ada data</td></tr>'
-                        );
-                        return;
+                        const colspan = $('#reportTableHeader th').length || 1;
+                        $body.html(`<tr><td colspan="${colspan}" class="text-center">Tidak ada data</td></tr>`);
+                    } else {
+                        resp.forEach(d => {
+                            let cells;
+                            if (type.startsWith('losses')) {
+                                if (type === 'losses_estate') {
+                                    cells = [d.pt, d.estate, d.jumlah_losses];
+                                } else if (type === 'losses_block') {
+                                    cells = [d.pt, d.estate, d.nama_blok, d.jumlah_losses];
+                                } else {
+                                    cells = [d.pt, d.estate, d.nama_blok, d.no_titik_tanam, d.jumlah_losses];
+                                }
+                            } else {
+                                if (type === 'recovery_estate') {
+                                    cells = [d.pt, d.estate, d.jumlah_recovery];
+                                } else if (type === 'recovery_block') {
+                                    cells = [d.pt, d.estate, d.nama_blok, d.jumlah_recovery];
+                                } else {
+                                    cells = [d.pt, d.estate, d.nama_blok, d.no_titik_tanam, d.jumlah_recovery];
+                                }
+                            }
+
+                            const $tr = $('<tr>');
+                            cells.forEach(c => $tr.append(`<td>${c}</td>`));
+                            $body.append($tr);
+                        });
                     }
 
-                    resp.forEach(function(d) {
-                        var cells = [];
-                        if (type.indexOf('losses') === 0) {
-                            if (type === 'losses_estate') {
-                                cells = [d.pt, d.estate, d.jumlah_losses];
-                            } else if (type === 'losses_block') {
-                                cells = [d.pt, d.estate, d.nama_blok, d.jumlah_losses];
-                            } else {
-                                cells = [d.pt, d.estate, d.nama_blok, d.no_titik_tanam, d.jumlah_losses];
-                            }
-                        } else {
-                            if (type === 'recovery_estate') {
-                                cells = [d.pt, d.estate, d.jumlah_recovery];
-                            } else if (type === 'recovery_block') {
-                                cells = [d.pt, d.estate, d.nama_blok, d.jumlah_recovery];
-                            } else {
-                                cells = [d.pt, d.estate, d.nama_blok, d.no_titik_tanam, d.jumlah_recovery];
-                            }
-                        }
-
-                        var $tr = $('<tr>');
-                        cells.forEach(function(c) {
-                            $tr.append('<td>' + c + '</td>');
-                        });
-                        $body.append($tr);
+                    // 3) Setup tombol download
+                    const params = $.param({
+                        start_date: start,
+                        end_date: end,
+                        report_type: type
                     });
+                    $('#download-excel').attr('href',
+                        `${baseUrl}identifikasi-tanaman/downloadIdentifikasiTanamanExcel?${params}`);
+                    $('#download-pdf').attr('href',
+                        `${baseUrl}identifikasi-tanaman/downloadIdentifikasiTanamanPdf?${params}`);
+                    $('#download-buttons').show();
                 })
-                .fail(function() {
-                    alert('Gagal mengambil data laporan.');
-                });
+                .fail(() => alert('Gagal mengambil data laporan.'));
         }
 
-        // 3) Pasang event handler ke tombol
+        // 4) Hook tombol generate
         $(function() {
-            $('#generateReportBtn').on('click', function(e) {
+            $('#generateReportBtn').on('click', e => {
                 e.preventDefault();
                 fetchReportData();
             });
