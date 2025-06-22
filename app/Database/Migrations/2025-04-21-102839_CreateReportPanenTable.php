@@ -9,53 +9,64 @@ class CreateReportPanenTable extends Migration
     public function up()
     {
         $this->forge->addField([
-            'id' => [
-                'type' => 'INT',
-                'unsigned' => true,
+            'report_panen_id' => [
+                'type'           => 'INT',
+                'unsigned'       => true,
                 'auto_increment' => true,
             ],
-            'transaksi_id' => [
-                'type' => 'INT',
+            'transaksi_id'    => [
+                'type'     => 'INT',
                 'unsigned' => true,
+                'null'     => false,
             ],
-            'tgl_transaksi' => [
+            'tanaman_id'      => [
+                'type'     => 'INT',
+                'unsigned' => true,
+                'null'     => true,
+            ],
+            'tgl_transaksi'   => [
                 'type' => 'DATETIME',
                 'null' => false,
             ],
-            'hs_id' => [
-                'type' => 'INT',
+            'hs_id'           => [
+                'type'     => 'INT',
                 'unsigned' => true,
-                'null' => true,
+                'null'     => true,
             ],
-            'status_id' => [
-                'type' => 'INT',
+            'status_id'       => [
+                'type'     => 'INT',
                 'unsigned' => true,
-                'null' => true,
+                'null'     => true,
             ],
             'berat_timbangan' => [
-                'type' => 'DECIMAL',
+                'type'       => 'DECIMAL',
                 'constraint' => '10,2',
-                'null' => false,
+                'null'       => false,
             ],
-            'rfid_tanaman' => [
-                'type' => 'VARCHAR',
+            'rfid_tanaman'    => [
+                'type'       => 'VARCHAR',
                 'constraint' => '255',
-                'null' => true,
+                'null'       => true,
             ],
-            'group_id' => [
-                'type' => 'INT',
+            'group_id'        => [
+                'type'     => 'INT',
                 'unsigned' => true,
-                'null' => true,
+                'null'     => true,
             ],
         ]);
 
-        $this->forge->addKey('id', true);  // Set 'id' as primary key
-        $this->forge->addForeignKey('transaksi_id', 'timbangan', 'transaksi_id', 'CASCADE', 'CASCADE');
-        $this->forge->addForeignKey('hs_id', 'hectare_statement', 'hs_id', 'CASCADE', 'CASCADE');
-        $this->forge->addForeignKey('status_id', 'status', 'status_id', 'CASCADE', 'CASCADE');
-        $this->forge->addForeignKey('group_id', 'group_karyawan', 'group_id', 'CASCADE', 'CASCADE');
+        // Tetapkan report_panen_id sebagai PRIMARY KEY
+        $this->forge->addKey('report_panen_id', true);
 
-        $this->forge->createTable('report_panen');  // Create the 'report_panen' table
+        // Foreign keys
+        $this->forge->addForeignKey('transaksi_id', 'timbangan',         'transaksi_id', 'CASCADE', 'CASCADE');
+        $this->forge->addForeignKey('tanaman_id',    'tanaman',           'tanaman_id',    'CASCADE', 'CASCADE');
+        $this->forge->addForeignKey('hs_id',         'hectare_statement', 'hs_id',         'CASCADE', 'CASCADE');
+        $this->forge->addForeignKey('status_id',     'status',            'status_id',     'CASCADE', 'CASCADE');
+        $this->forge->addForeignKey('group_id',      'group_karyawan',    'group_id',      'CASCADE', 'CASCADE');
+
+        // Buat tabel
+        $this->forge->createTable('report_panen');
     }
 
     public function down()
