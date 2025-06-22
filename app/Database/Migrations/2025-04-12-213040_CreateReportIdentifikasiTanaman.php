@@ -8,13 +8,14 @@ class CreateReportIdentifikasiTanaman extends Migration
 {
     public function up()
     {
-        // definisi kolom
+        // definisi kolom sesuai tabel tanaman + report_identifikasi_tanaman_id + tanaman_id
         $this->forge->addField([
             'report_identifikasi_tanaman_id' => [
                 'type'           => 'INT',
                 'unsigned'       => true,
                 'auto_increment' => true,
             ],
+            // kolom tanaman_id sebagai FK
             'tanaman_id' => [
                 'type'     => 'INT',
                 'unsigned' => true,
@@ -32,7 +33,7 @@ class CreateReportIdentifikasiTanaman extends Migration
             'rfid_tanaman' => [
                 'type'       => 'VARCHAR',
                 'constraint' => '255',
-                'null'       => false,
+                'null'       => true,
             ],
             'latitude_tanam' => [
                 'type'       => 'DECIMAL',
@@ -56,11 +57,6 @@ class CreateReportIdentifikasiTanaman extends Migration
             'sister' => [
                 'type' => 'INT',
                 'null' => true,
-            ],
-            'is_loses' => [
-                'type'       => 'CHAR',
-                'constraint' => '1',
-                'default'    => 'N',
             ],
             'losses_id' => [
                 'type'     => 'INT',
@@ -89,19 +85,25 @@ class CreateReportIdentifikasiTanaman extends Migration
                 'constraint' => '255',
                 'null'       => true,
             ],
+            'aktivitas_id' => [
+                'type'     => 'INT',
+                'unsigned' => true,
+                'null'     => true,
+            ],
         ]);
 
         // primary key
         $this->forge->addKey('report_identifikasi_tanaman_id', true);
 
         // foreign keys
-        $this->forge->addForeignKey('tanaman_id', 'tanaman', 'tanaman_id', 'CASCADE', 'CASCADE');
-        $this->forge->addForeignKey('hs_id',       'hectare_statement', 'hs_id',       'SET NULL', 'CASCADE');
-        $this->forge->addForeignKey('status_id',   'status',            'status_id',   'SET NULL', 'CASCADE');
-        $this->forge->addForeignKey('losses_id',   'master_losses',     'losses_id',   'SET NULL', 'CASCADE');
-        $this->forge->addForeignKey('npk',         'karyawan',          'npk',         'SET NULL', 'CASCADE');
+        $this->forge->addForeignKey('tanaman_id',      'tanaman',             'tanaman_id',       'CASCADE',  'CASCADE');
+        $this->forge->addForeignKey('hs_id',           'hectare_statement',   'hs_id',            'SET NULL', 'CASCADE');
+        $this->forge->addForeignKey('status_id',       'status',              'status_id',        'SET NULL', 'CASCADE');
+        $this->forge->addForeignKey('losses_id',       'master_losses',       'losses_id',        'SET NULL', 'CASCADE');
+        $this->forge->addForeignKey('npk',             'karyawan',            'npk',              'SET NULL', 'CASCADE');
+        $this->forge->addForeignKey('aktivitas_id',    'tipe_aktivitas',      'aktivitas_id',     'SET NULL', 'CASCADE');
 
-        // buat table
+        // create table
         $this->forge->createTable('report_identifikasi_tanaman');
     }
 
