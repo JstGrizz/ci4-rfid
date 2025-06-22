@@ -176,7 +176,7 @@
                 return alert('Mohon lengkapi semua pilihan.');
             }
 
-            $.getJSON(`${baseUrl}identifikasi-tanaman/fetchReportIdentifikasiTanaman`, {
+            $.getJSON(`${baseUrl}/laporan/identifikasi-tanaman/fetchReportIdentifikasiTanaman`, {
                     start_date: start,
                     end_date: end,
                     report_type: type
