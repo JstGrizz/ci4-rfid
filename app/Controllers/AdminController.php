@@ -4,9 +4,7 @@ namespace App\Controllers;
 
 use App\Models\KaryawanModel;
 use App\Models\ReportPanenModel;
-use App\Models\HistoryLossesModel;
 use App\Models\TanamanModel;
-
 use App\Controllers\BaseController;
 
 class AdminController extends BaseController
@@ -31,11 +29,9 @@ class AdminController extends BaseController
         }
 
         // 3. Hitung “jumlah karyawan”
-        //    - countAll() akan melakukan SELECT COUNT(*) FROM karyawan
         $jumlahKaryawan = $karyawanModel->countAll();
 
         // 4. Hitung “jumlah tanaman aktif”
-        //    Kondisi: tgl_akhir_identifikasi IS NULL
         $tanamanModel = new TanamanModel();
         $jumlahTanamanAktif = $tanamanModel
             ->where('tgl_akhir_identifikasi', null)
@@ -48,16 +44,8 @@ class AdminController extends BaseController
             ->where("YEAR(tgl_transaksi)", $currentYear)
             ->countAllResults();
 
-        // 6. Hitung “tanaman yang losses di tahun ini”
-        $historyLossesModel   = new HistoryLossesModel();
-        $jumlahLossesThisYear = $historyLossesModel
-            ->where("YEAR(tgl_mulai_identifikasi)", $currentYear)
-            ->where('is_loses', 'Y')
-            ->countAllResults();
-
-        // 7. Hitung “panen per bulan” (untuk chart, optional)
-        $panenModel   = new ReportPanenModel();
-        $builderPanen = $panenModel->builder();
+        // 6. Hitung “panen per bulan” (untuk chart)
+        $builderPanen = $reportPanenModel->builder();
         $builderPanen
             ->select("MONTH(tgl_transaksi) AS bulan, COUNT(*) AS total")
             ->where("YEAR(tgl_transaksi)", $currentYear)
@@ -69,47 +57,24 @@ class AdminController extends BaseController
             $bulan = (int) $row['bulan'];
             $countsPanenPerMonth[$bulan] = (int) $row['total'];
         }
+
         $panenCounts = [];
         for ($i = 1; $i <= 12; $i++) {
             $panenCounts[] = $countsPanenPerMonth[$i];
         }
 
-        // 8. Hitung “losses per bulan” (untuk chart, optional)
-        $lossesModel   = new HistoryLossesModel();
-        $builderLoss   = $lossesModel->builder();
-        $builderLoss
-            ->select("MONTH(tgl_mulai_identifikasi) AS bulan, COUNT(*) AS total")
-            ->where("YEAR(tgl_mulai_identifikasi)", $currentYear)
-            ->where("is_loses", "Y")
-            ->groupBy("MONTH(tgl_mulai_identifikasi)");
-        $resultsLosses = $builderLoss->get()->getResultArray();
-
-        $countsLossesPerMonth = array_fill(1, 12, 0);
-        foreach ($resultsLosses as $row) {
-            $bulan = (int) $row['bulan'];
-            $countsLossesPerMonth[$bulan] = (int) $row['total'];
-        }
-        $lossesCounts = [];
-        for ($i = 1; $i <= 12; $i++) {
-            $lossesCounts[] = $countsLossesPerMonth[$i];
-        }
-
-        // 9. Label bulan (optional, jika ingin ditampilkan di chart)
+        // 7. Label bulan (untuk chart)
         $panenLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-        // 10. Kirim semua data ke view
-        $data = [
-            'karyawan'              => $karyawan,
-            'jumlahKaryawan'        => $jumlahKaryawan,
-            'jumlahTanamanAktif'    => $jumlahTanamanAktif,
-            'jumlahPanenThisYear'   => $jumlahPanenThisYear,
-            'jumlahLossesThisYear'  => $jumlahLossesThisYear,
-            'panenCounts'           => $panenCounts,
-            'panenLabels'           => $panenLabels,
-            'lossesCounts'          => $lossesCounts,
-            'currentYear'           => $currentYear
-        ];
-
-        return view('admin/index', $data);
+        // 8. Kirim semua data ke view (tanpa history losses)
+        return view('admin/index', [
+            'karyawan'            => $karyawan,
+            'jumlahKaryawan'      => $jumlahKaryawan,
+            'jumlahTanamanAktif'  => $jumlahTanamanAktif,
+            'jumlahPanenThisYear' => $jumlahPanenThisYear,
+            'panenCounts'         => $panenCounts,
+            'panenLabels'         => $panenLabels,
+            'currentYear'         => $currentYear,
+        ]);
     }
 }
