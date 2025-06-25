@@ -40,32 +40,23 @@
                         Input your data to register to our website.
                     </p>
 
-                    <form method="post" id="register-form">
+                    <form id="register-form">
                         <div class="form-group position-relative has-icon-left mb-4">
                             <input type="number" class="form-control form-control-xl" id="npk" name="npk"
                                 placeholder="NPK" />
-                            <div class="form-control-icon">
-                                <i class="bi bi-person"></i>
-                            </div>
+                            <div class="form-control-icon"><i class="bi bi-person"></i></div>
                         </div>
                         <div class="form-group position-relative has-icon-left mb-4">
                             <input type="text" class="form-control form-control-xl" id="username" name="username"
                                 placeholder="Username" />
-                            <div class="form-control-icon">
-                                <i class="bi bi-person"></i>
-                            </div>
+                            <div class="form-control-icon"><i class="bi bi-person"></i></div>
                         </div>
                         <div class="form-group position-relative has-icon-left mb-4">
                             <input type="password" class="form-control form-control-xl" id="password" name="password"
                                 placeholder="Password" />
-                            <div class="form-control-icon">
-                                <i class="bi bi-shield-lock"></i>
-                            </div>
+                            <div class="form-control-icon"><i class="bi bi-shield-lock"></i></div>
                         </div>
-
-                        <button type="submit" class="btn btn-primary btn-block btn-lg shadow-lg mt-3">
-                            Daftar
-                        </button>
+                        <button type="submit" class="btn btn-primary btn-block btn-lg shadow-lg mt-3">Daftar</button>
                     </form>
                     <div class="text-center mt-5 text-lg fs-4">
                         <p class="text-gray-600">
@@ -83,37 +74,39 @@
         </div>
     </div>
     <script>
-        var baseUrl = "<?= base_url(); ?>"
+        const baseUrl = "<?= base_url() ?>";
 
-        document.addEventListener("DOMContentLoaded", function() {
-            const registerForm = document.querySelector('#register-form');
+        document.getElementById('register-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
 
-            registerForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                submitForm(registerForm, baseUrl + '/register-process');
-            });
+            // Kumpulkan nilai form ke objek JS
+            const payload = {
+                npk: document.getElementById('npk').value,
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value
+            };
 
-            function submitForm(form, url) {
-                const formData = new FormData(form);
-                fetch(url, {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => {
-                        if (response.ok) {
-                            return response.json().then(data => {
-                                console.log('Success:', data);
-                                alert(data.message);
-                                window.location.href = baseUrl + 'auth-login';
-                            });
-                        } else {
-                            return response.json().then(data => {
-                                console.error('Error:', data);
-                                alert(data.message);
-                            });
-                        }
-                    })
-                    .catch(error => console.error('Error:', error));
+            try {
+                const res = await fetch(baseUrl + '/register-process', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    alert(data.message);
+                    window.location.href = baseUrl + '/auth-login';
+                } else {
+                    alert(data.message);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Terjadi kesalahan jaringan.');
             }
         });
     </script>

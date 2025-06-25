@@ -27,34 +27,51 @@ class AuthController extends ResourceController
 
     public function registerProcess()
     {
-        $model = new UsersModel();
+        $model         = new UsersModel();
         $karyawanModel = new karyawanModel();
 
-        $username = $this->request->getPost('username');
-        $npk = $this->request->getPost('npk');
-        $password = $this->request->getPost('password');
-
-        // First check if the NPK is available
-        if (!$karyawanModel->where('npk', $npk)->first()) {
+        // Ambil JSON payload
+        $json = $this->request->getJSON();
+        if (! $json) {
             return $this->respond([
                 'success' => false,
-                'message' => 'NPK tidak terdaftar : ' . $npk
+                'message' => 'Invalid JSON data provided.'
             ], 400);
         }
 
-        // Check if user or NPK already exists
+        $npk      = $json->npk      ?? null;
+        $username = $json->username ?? null;
+        $password = $json->password ?? null;
+
+        // Validasi keharusan field
+        if (empty($npk) || empty($username) || empty($password)) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'NPK, Username, dan Password harus diisi.'
+            ], 400);
+        }
+
+        // Cek NPK terdaftar di karyawan
+        if (! $karyawanModel->where('npk', $npk)->first()) {
+            return $this->respond([
+                'success' => false,
+                'message' => "NPK tidak terdaftar : {$npk}"
+            ], 400);
+        }
+
+        // Cek duplikat username atau npk
         if ($model->where('username', $username)->first() || $model->where('npk', $npk)->first()) {
             return $this->respond([
                 'success' => false,
                 'message' => 'Username atau NPK sudah digunakan'
-            ], 409); // Use 409 Conflict for existing resource
+            ], 409);
         }
 
         $data = [
             'username' => $username,
-            'npk' => $npk,
+            'npk'      => $npk,
             'password' => password_hash($password, PASSWORD_DEFAULT),
-            'role' => 'user'
+            'role'     => 'user'
         ];
 
         try {
@@ -67,7 +84,7 @@ class AuthController extends ResourceController
             return $this->respond([
                 'success' => false,
                 'message' => 'Pendaftaran gagal: ' . $e->getMessage()
-            ], 500); // Use 500 Internal Server Error for database errors
+            ], 500);
         }
     }
 
