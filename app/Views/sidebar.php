@@ -142,11 +142,11 @@ $currentUri2 = $request->getUri()->getSegment(2);
                             <a href="<?= base_url('laporan/identifikasi-tanaman'); ?>" class="submenu-link">Identifikasi
                                 Tanaman</a>
                         </li>
-                        <li
+                        <!-- <li
                             class="submenu-item <?= ($currentUri1 === 'laporan' && $currentUri2 === 'penentuan-masa-panen') ? 'active' : ''; ?>">
                             <a href="<?= base_url('laporan/penentuan-masa-panen'); ?>" class="submenu-link">Penentuan
                                 Masa Panen</a>
-                        </li>
+                        </li> -->
                     </ul>
                 </li>
                 <li class="sidebar-item">

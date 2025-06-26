@@ -277,5 +277,3 @@ $routes->get('/auth-login', 'AuthController::login');
 $routes->get('/auth-register', 'AuthController::register');
 $routes->post('/register-process', 'AuthController::registerProcess');
 $routes->post('/login-process', 'AuthController::loginProcess');
-
-$routes->get('/test', 'TestController::index');
