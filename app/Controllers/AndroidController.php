@@ -100,42 +100,55 @@ class AndroidController extends ResourceController
 
         $npk = $json->npk;
 
-        $lokasiModel = new MasterLokasiModel();
+        // 1) Check NPK exists
         $karyawanModel = new KaryawanModel();
-        $groupModel = new GroupModel();
-        $rfidGroupModel = new RfidGroupModel();
-        $usersModel = new UsersModel();
-        $policyModel = new PolicyModel();
-        $masterLossesModel = new MasterLossesModel();
-        $ptEstateModel = new PtEstateModel();
-        $masterBlokModel = new MasterBlokModel();
-        $statusModel = new StatusModel();
+        $karyawan     = $karyawanModel
+            ->where('npk', $npk)
+            ->first();
+
+        if (! $karyawan) {
+            return $this->respond([
+                'success' => false,
+                'message' => "NPK “{$npk}” not found."
+            ], 404);
+        }
+
+        // 2) Load all the “master” data
+        $lokasiModel           = new MasterLokasiModel();
+        $groupModel            = new GroupModel();
+        $rfidGroupModel        = new RfidGroupModel();
+        $usersModel            = new UsersModel();
+        $policyModel           = new PolicyModel();
+        $masterLossesModel     = new MasterLossesModel();
+        $ptEstateModel         = new PtEstateModel();
+        $masterBlokModel       = new MasterBlokModel();
+        $statusModel           = new StatusModel();
         $hectareStatementModel = new HectareStatementModel();
-        $timbanganModel = new TimbanganModel();
-        $tanamanModel = new TanamanModel();
-        $tipeAktivitasModel = new TipeAktivitasModel();
+        $timbanganModel        = new TimbanganModel();
+        $tanamanModel          = new TanamanModel();
+        $tipeAktivitasModel    = new TipeAktivitasModel();
 
         $data = [
-            'lokasi' => $lokasiModel->findAll(),
-            'karyawan' => $karyawanModel->where('npk', $npk)->first(),
-            'group' => $groupModel->findAll(),
-            'rfid_group' => $rfidGroupModel->findAll(),
-            'users' => $usersModel->findAll(),
-            'policy' => $policyModel->findAll(),
-            'master_losses' => $masterLossesModel->findAll(),
-            'pt_estate' => $ptEstateModel->findAll(),
-            'master_blok' => $masterBlokModel->findAll(),
-            'status' => $statusModel->findAll(),
-            'hectare_statement' => $hectareStatementModel->findAll(),
-            'timbangan' => $timbanganModel->findAll(),
-            'tanaman' => $tanamanModel->findAll(),
-            'tipe_aktivitas' => $tipeAktivitasModel->findAll(),
+            'lokasi'             => $lokasiModel->findAll(),
+            'karyawan'           => $karyawan,
+            'group'              => $groupModel->findAll(),
+            'rfid_group'         => $rfidGroupModel->findAll(),
+            'users'              => $usersModel->findAll(),
+            'policy'             => $policyModel->findAll(),
+            'master_losses'      => $masterLossesModel->findAll(),
+            'pt_estate'          => $ptEstateModel->findAll(),
+            'master_blok'        => $masterBlokModel->findAll(),
+            'status'             => $statusModel->findAll(),
+            'hectare_statement'  => $hectareStatementModel->findAll(),
+            'timbangan'          => $timbanganModel->findAll(),
+            'tanaman'            => $tanamanModel->findAll(),
+            'tipe_aktivitas'     => $tipeAktivitasModel->findAll(),
         ];
 
         return $this->respond([
             'success' => true,
             'message' => 'Data berhasil diunduh.',
-            'data' => $data
+            'data'    => $data
         ], 200);
     }
 }
