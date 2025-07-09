@@ -1,4 +1,9 @@
 <?php
+
+$session = session();
+$role = strtolower($session->get('role') ?? '');
+$isUser = ($role === 'user');
+
 $request = \Config\Services::request();
 $currentUri1 = $request->getUri()->getSegment(1);
 $currentUri2 = $request->getUri()->getSegment(2);
@@ -55,54 +60,60 @@ $currentUri2 = $request->getUri()->getSegment(2);
                         <span>Dashboard</span>
                     </a>
                 </li>
-                <li
-                    class="sidebar-item has-sub <?= in_array($currentUri1, ['master-lokasi', 'master-karyawan', 'group-karyawan', 'master-user', 'master-policy', 'master-losses', 'pt-estate', 'master-blok', 'member-group', 'master-status', 'master-tipe-aktivitas']) ? 'active' : ''; ?>">
-                    <a href="#" class="sidebar-link">
-                        <i class="bi bi-file-earmark-spreadsheet-fill"></i>
-                        <span>Master Data</span>
-                    </a>
-                    <ul class="submenu">
-                        <li class="submenu-item <?= ($currentUri1 === 'master-lokasi') ? 'active' : ''; ?>">
-                            <a href="<?= base_url('master-lokasi'); ?>" class="submenu-link">Master Lokasi</a>
-                        </li>
-                        <li class="submenu-item <?= ($currentUri1 === 'master-karyawan') ? 'active' : ''; ?>">
-                            <a href="<?= base_url('master-karyawan'); ?>" class="submenu-link">Master Karyawan</a>
-                        </li>
-                        <li
-                            class="submenu-item <?= ($currentUri1 === 'group-karyawan' or $currentUri1 === 'member-group') ? 'active' : ''; ?>">
-                            <a href="<?= base_url('group-karyawan'); ?>" class="submenu-link">Group Karyawan</a>
-                        </li>
-                        <li class="submenu-item <?= ($currentUri1 === 'master-user') ? 'active' : ''; ?>">
-                            <a href="<?= base_url('master-user'); ?>" class="submenu-link">Master Users</a>
-                        </li>
-                        <li class="submenu-item <?= ($currentUri1 === 'master-policy') ? 'active' : ''; ?>">
-                            <a href="<?= base_url('master-policy'); ?>" class="submenu-link">Master Policy</a>
-                        </li>
-                        <li class="submenu-item <?= ($currentUri1 === 'master-losses') ? 'active' : ''; ?>">
-                            <a href="<?= base_url('master-losses'); ?>" class="submenu-link">Master Losses</a>
-                        </li>
-                        <li class="submenu-item <?= ($currentUri1 === 'pt-estate') ? 'active' : ''; ?>">
-                            <a href="<?= base_url('pt-estate'); ?>" class="submenu-link">Master PT dan Estate</a>
-                        </li>
-                        <li class="submenu-item <?= ($currentUri1 === 'master-blok') ? 'active' : ''; ?>">
-                            <a href="<?= base_url('master-blok'); ?>" class="submenu-link">Master Block</a>
-                        </li>
-                        <li class="submenu-item <?= ($currentUri1 === 'master-status') ? 'active' : ''; ?>">
-                            <a href="<?= base_url('master-status'); ?>" class="submenu-link">Master Status</a>
-                        </li>
-                        <!-- Added Master Tipe Aktivitas Menu -->
-                        <li class="submenu-item <?= ($currentUri1 === 'master-tipe-aktivitas') ? 'active' : ''; ?>">
-                            <a href="<?= base_url('master-tipe-aktivitas'); ?>" class="submenu-link">Master Tipe
-                                Aktivitas</a>
-                        </li>
-                    </ul>
-                </li>
-                <li class="sidebar-item <?= ($currentUri1 === 'hectare-statement') ? 'active' : ''; ?>">
-                    <a href="<?= base_url('hectare-statement'); ?>" class="sidebar-link">
-                        <i class="bi bi-file-earmark-spreadsheet-fill"></i>
-                        <span>Hectare Statement</span>
-                    </a>
-                </li>
+                <?php if (!$isUser):
+                ?>
+                    <li
+                        class="sidebar-item has-sub <?= in_array($currentUri1, ['master-lokasi', 'master-karyawan', 'group-karyawan', 'master-user', 'master-policy', 'master-losses', 'pt-estate', 'master-blok', 'member-group', 'master-status', 'master-tipe-aktivitas']) ? 'active' : ''; ?>">
+                        <a href="#" class="sidebar-link">
+                            <i class="bi bi-file-earmark-spreadsheet-fill"></i>
+                            <span>Master Data</span>
+                        </a>
+                        <ul class="submenu">
+                            <li class="submenu-item <?= ($currentUri1 === 'master-lokasi') ? 'active' : ''; ?>">
+                                <a href="<?= base_url('master-lokasi'); ?>" class="submenu-link">Master Lokasi</a>
+                            </li>
+                            <li class="submenu-item <?= ($currentUri1 === 'master-karyawan') ? 'active' : ''; ?>">
+                                <a href="<?= base_url('master-karyawan'); ?>" class="submenu-link">Master Karyawan</a>
+                            </li>
+                            <li
+                                class="submenu-item <?= ($currentUri1 === 'group-karyawan' or $currentUri1 === 'member-group') ? 'active' : ''; ?>">
+                                <a href="<?= base_url('group-karyawan'); ?>" class="submenu-link">Group Karyawan</a>
+                            </li>
+                            <li class="submenu-item <?= ($currentUri1 === 'master-user') ? 'active' : ''; ?>">
+                                <a href="<?= base_url('master-user'); ?>" class="submenu-link">Master Users</a>
+                            </li>
+                            <li class="submenu-item <?= ($currentUri1 === 'master-policy') ? 'active' : ''; ?>">
+                                <a href="<?= base_url('master-policy'); ?>" class="submenu-link">Master Policy</a>
+                            </li>
+                            <li class="submenu-item <?= ($currentUri1 === 'master-losses') ? 'active' : ''; ?>">
+                                <a href="<?= base_url('master-losses'); ?>" class="submenu-link">Master Losses</a>
+                            </li>
+                            <li class="submenu-item <?= ($currentUri1 === 'pt-estate') ? 'active' : ''; ?>">
+                                <a href="<?= base_url('pt-estate'); ?>" class="submenu-link">Master PT dan Estate</a>
+                            </li>
+                            <li class="submenu-item <?= ($currentUri1 === 'master-blok') ? 'active' : ''; ?>">
+                                <a href="<?= base_url('master-blok'); ?>" class="submenu-link">Master Block</a>
+                            </li>
+                            <li class="submenu-item <?= ($currentUri1 === 'master-status') ? 'active' : ''; ?>">
+                                <a href="<?= base_url('master-status'); ?>" class="submenu-link">Master Status</a>
+                            </li>
+                            <!-- Added Master Tipe Aktivitas Menu -->
+                            <li class="submenu-item <?= ($currentUri1 === 'master-tipe-aktivitas') ? 'active' : ''; ?>">
+                                <a href="<?= base_url('master-tipe-aktivitas'); ?>" class="submenu-link">Master Tipe
+                                    Aktivitas</a>
+                            </li>
+                        </ul>
+                    </li>
+                <?php endif; ?>
+                <?php if (!$isUser):
+                ?>
+                    <li class="sidebar-item <?= ($currentUri1 === 'hectare-statement') ? 'active' : ''; ?>">
+                        <a href="<?= base_url('hectare-statement'); ?>" class="sidebar-link">
+                            <i class="bi bi-file-earmark-spreadsheet-fill"></i>
+                            <span>Hectare Statement</span>
+                        </a>
+                    </li>
+                <?php endif; ?>
                 <li
                     class="sidebar-item has-sub <?= in_array($currentUri1, ['identifikasi-tanaman']) ? 'active' : ''; ?>">
                     <a href="#" class="sidebar-link">
@@ -126,29 +137,32 @@ $currentUri2 = $request->getUri()->getSegment(2);
                         <span>Timbangan</span>
                     </a>
                 </li>
-                <li class="sidebar-item has-sub <?= in_array($currentUri1, ['laporan']) ? 'active' : ''; ?>">
-                    <a href="#" class="sidebar-link">
-                        <i class="bi bi-file-earmark-spreadsheet-fill"></i>
-                        <span>Laporan</span>
-                    </a>
-                    <ul class="submenu">
-                        <li
-                            class="submenu-item <?= ($currentUri1 === 'laporan' && $currentUri2 === 'panen-bulanan') ? 'active' : ''; ?>">
-                            <a href="<?= base_url('laporan/panen-bulanan'); ?>" class="submenu-link">Laporan Panen
-                                Bulanan</a>
-                        </li>
-                        <li
-                            class="submenu-item <?= ($currentUri1 === 'laporan' && $currentUri2 === 'identifikasi-tanaman') ? 'active' : ''; ?>">
-                            <a href="<?= base_url('laporan/identifikasi-tanaman'); ?>" class="submenu-link">Identifikasi
-                                Tanaman</a>
-                        </li>
-                        <!-- <li
+                <?php if (!$isUser):
+                ?>
+                    <li class="sidebar-item has-sub <?= in_array($currentUri1, ['laporan']) ? 'active' : ''; ?>">
+                        <a href="#" class="sidebar-link">
+                            <i class="bi bi-file-earmark-spreadsheet-fill"></i>
+                            <span>Laporan</span>
+                        </a>
+                        <ul class="submenu">
+                            <li
+                                class="submenu-item <?= ($currentUri1 === 'laporan' && $currentUri2 === 'panen-bulanan') ? 'active' : ''; ?>">
+                                <a href="<?= base_url('laporan/panen-bulanan'); ?>" class="submenu-link">Laporan Panen
+                                    Bulanan</a>
+                            </li>
+                            <li
+                                class="submenu-item <?= ($currentUri1 === 'laporan' && $currentUri2 === 'identifikasi-tanaman') ? 'active' : ''; ?>">
+                                <a href="<?= base_url('laporan/identifikasi-tanaman'); ?>" class="submenu-link">Identifikasi
+                                    Tanaman</a>
+                            </li>
+                            <!-- <li
                             class="submenu-item <?= ($currentUri1 === 'laporan' && $currentUri2 === 'penentuan-masa-panen') ? 'active' : ''; ?>">
                             <a href="<?= base_url('laporan/penentuan-masa-panen'); ?>" class="submenu-link">Penentuan
                                 Masa Panen</a>
                         </li> -->
-                    </ul>
-                </li>
+                        </ul>
+                    </li>
+                <?php endif; ?>
                 <li class="sidebar-item">
                     <a href="<?= base_url('logout'); ?>" class="sidebar-link">
                         <i class="bi bi-box-arrow-right"></i>

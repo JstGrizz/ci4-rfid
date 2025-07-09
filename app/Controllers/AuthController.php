@@ -117,7 +117,8 @@ class AuthController extends ResourceController
             // Set user session
             $sessionData = [
                 'npk' => $user['npk'],
-                'isLoggedIn' => true
+                'isLoggedIn' => true,
+                'role' => $user['role']
             ];
             $session->set($sessionData);
             return $this->respond([
