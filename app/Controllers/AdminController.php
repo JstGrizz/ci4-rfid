@@ -11,7 +11,6 @@ class AdminController extends BaseController
 {
     public function index()
     {
-        // 1. Cek session login
         $session = session();
         $npk     = $session->get('npk');
 
@@ -19,7 +18,6 @@ class AdminController extends BaseController
             return redirect()->to('/login');
         }
 
-        // 2. Ambil data karyawan (sesuai npk)
         $karyawanModel = new KaryawanModel();
         $karyawan      = $karyawanModel->getKaryawanNameWithNpk($npk);
         if (! $karyawan) {
@@ -28,53 +26,73 @@ class AdminController extends BaseController
             return redirect()->to('/login');
         }
 
-        // 3. Hitung “jumlah karyawan”
-        $jumlahKaryawan = $karyawanModel->countAll();
-
-        // 4. Hitung “jumlah tanaman aktif”
         $tanamanModel = new TanamanModel();
-        $jumlahTanamanAktif = $tanamanModel
-            ->where('tgl_akhir_identifikasi', null)
-            ->countAllResults();
+        $tanamanData = $tanamanModel->getActivePlantsForAdminView();
 
-        // 5. Hitung “tanaman yang telah panen di tahun ini”
-        $currentYear         = date('Y');
-        $reportPanenModel    = new ReportPanenModel();
-        $jumlahPanenThisYear = $reportPanenModel
-            ->where("YEAR(tgl_transaksi)", $currentYear)
-            ->countAllResults();
-
-        // 6. Hitung “panen per bulan” (untuk chart)
-        $builderPanen = $reportPanenModel->builder();
-        $builderPanen
-            ->select("MONTH(tgl_transaksi) AS bulan, COUNT(*) AS total")
-            ->where("YEAR(tgl_transaksi)", $currentYear)
-            ->groupBy("MONTH(tgl_transaksi)");
-        $resultsPanen = $builderPanen->get()->getResultArray();
-
-        $countsPanenPerMonth = array_fill(1, 12, 0);
-        foreach ($resultsPanen as $row) {
-            $bulan = (int) $row['bulan'];
-            $countsPanenPerMonth[$bulan] = (int) $row['total'];
+        foreach ($tanamanData as &$row) {
+            $row['umur'] = $this->calculateAgeInWeeks($row['tgl_mulai_identifikasi'], $row['minggu']);
         }
 
-        $panenCounts = [];
-        for ($i = 1; $i <= 12; $i++) {
-            $panenCounts[] = $countsPanenPerMonth[$i];
+        $currentYear = date('Y');
+
+        // Get counts using model methods
+        $countSeleksi = $tanamanModel->countSeleksiForCurrentYear($currentYear);
+        $countShooting = $tanamanModel->countShootingForCurrentYear($currentYear);
+        $countLosses = $tanamanModel->countLossesForCurrentYear($currentYear);
+
+        // Get monthly data
+        $monthlyData = [];
+        $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+        foreach ($months as $index => $monthName) {
+            $monthNum = $index + 1;
+
+            $monthlyData['seleksi'][$monthName] = $tanamanModel
+                ->join('tipe_aktivitas', 'tipe_aktivitas.aktivitas_id = tanaman.aktivitas_id')
+                ->where('YEAR(tanaman.tgl_mulai_identifikasi)', $currentYear)
+                ->where('MONTH(tanaman.tgl_mulai_identifikasi)', $monthNum)
+                ->where('tanaman.tgl_akhir_identifikasi IS NOT NULL')
+                ->where('tanaman.losses_id IS NULL')
+                ->like('LOWER(tipe_aktivitas.nama_aktivitas)', 'seleksi')
+                ->countAllResults();
+
+            $monthlyData['shooting'][$monthName] = $tanamanModel
+                ->join('tipe_aktivitas', 'tipe_aktivitas.aktivitas_id = tanaman.aktivitas_id')
+                ->where('YEAR(tanaman.tgl_mulai_identifikasi)', $currentYear)
+                ->where('MONTH(tanaman.tgl_mulai_identifikasi)', $monthNum)
+                ->where('tanaman.tgl_akhir_identifikasi IS NOT NULL')
+                ->where('tanaman.losses_id IS NULL')
+                ->like('LOWER(tipe_aktivitas.nama_aktivitas)', 'shooting')
+                ->countAllResults();
+
+            $monthlyData['losses'][$monthName] = $tanamanModel
+                ->where('YEAR(tanaman.tgl_mulai_identifikasi)', $currentYear)
+                ->where('MONTH(tanaman.tgl_mulai_identifikasi)', $monthNum)
+                ->where('tanaman.tgl_akhir_identifikasi IS NOT NULL')
+                ->where('tanaman.losses_id IS NOT NULL')
+                ->countAllResults();
         }
 
-        // 7. Label bulan (untuk chart)
-        $panenLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-        // 8. Kirim semua data ke view (tanpa history losses)
         return view('admin/index', [
-            'karyawan'            => $karyawan,
-            'jumlahKaryawan'      => $jumlahKaryawan,
-            'jumlahTanamanAktif'  => $jumlahTanamanAktif,
-            'jumlahPanenThisYear' => $jumlahPanenThisYear,
-            'panenCounts'         => $panenCounts,
-            'panenLabels'         => $panenLabels,
-            'currentYear'         => $currentYear,
+            'karyawan' => $karyawan,
+            'tanamanData' => $tanamanData,
+            'countSeleksi' => $countSeleksi,
+            'countShooting' => $countShooting,
+            'countLosses' => $countLosses,
+            'monthlyData' => $monthlyData,
+            'months' => $months
         ]);
+    }
+
+    private function calculateAgeInWeeks($startDate, $minggu)
+    {
+        if (!$startDate) return 0;
+
+        $start = new \DateTime($startDate);
+        $now = new \DateTime();
+        $interval = $start->diff($now);
+        $totalWeeks = floor($interval->days / 7);
+
+        return max(0, $totalWeeks + $minggu);
     }
 }

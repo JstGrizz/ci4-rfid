@@ -129,4 +129,58 @@ class TanamanModel extends Model
             ->set($updateData)
             ->update();
     }
+
+    public function getActivePlantsForAdminView()
+    {
+        return $this->select('
+        pt_estate.pt,
+        pt_estate.estate,
+        master_blok.nama_blok AS blok,
+        hectare_statement.varian_bibit,
+        tanaman.no_titik_tanam,
+        tanaman.rfid_tanaman,
+        status.nama_status AS status,
+        tanaman.tgl_mulai_identifikasi,
+        tanaman.minggu,
+        tipe_aktivitas.nama_aktivitas AS tipe_aktivitas
+    ')
+            ->join('hectare_statement', 'hectare_statement.hs_id = tanaman.hs_id')
+            ->join('pt_estate', 'pt_estate.pt_estate_id = hectare_statement.pt_estate_id')
+            ->join('master_blok', 'master_blok.blok_id = hectare_statement.blok_id')
+            ->join('status', 'status.status_id = tanaman.status_id')
+            ->join('tipe_aktivitas', 'tipe_aktivitas.aktivitas_id = tanaman.aktivitas_id')
+            ->where('tanaman.tgl_akhir_identifikasi IS NULL')
+            ->findAll();
+    }
+
+    public function countSeleksiForCurrentYear($currentYear)
+    {
+        return $this->select('COUNT(*) as count')
+            ->join('tipe_aktivitas', 'tipe_aktivitas.aktivitas_id = tanaman.aktivitas_id')
+            ->where('YEAR(tanaman.tgl_mulai_identifikasi)', $currentYear)
+            ->where('tanaman.tgl_akhir_identifikasi IS NOT NULL')
+            ->where('tanaman.losses_id IS NULL')
+            ->like('LOWER(tipe_aktivitas.nama_aktivitas)', 'seleksi')
+            ->countAllResults();
+    }
+
+    public function countShootingForCurrentYear($currentYear)
+    {
+        return $this->select('COUNT(*) as count')
+            ->join('tipe_aktivitas', 'tipe_aktivitas.aktivitas_id = tanaman.aktivitas_id')
+            ->where('YEAR(tanaman.tgl_mulai_identifikasi)', $currentYear)
+            ->where('tanaman.tgl_akhir_identifikasi IS NOT NULL')
+            ->where('tanaman.losses_id IS NULL')
+            ->like('LOWER(tipe_aktivitas.nama_aktivitas)', 'shooting')
+            ->countAllResults();
+    }
+
+    public function countLossesForCurrentYear($currentYear)
+    {
+        return $this->select('COUNT(*) as count')
+            ->where('YEAR(tanaman.tgl_mulai_identifikasi)', $currentYear)
+            ->where('tanaman.tgl_akhir_identifikasi IS NOT NULL')
+            ->where('tanaman.losses_id IS NOT NULL')
+            ->countAllResults();
+    }
 }
