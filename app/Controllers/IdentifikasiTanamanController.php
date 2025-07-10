@@ -258,21 +258,22 @@ class IdentifikasiTanamanController extends ResourceController
 
     public function fetchSister()
     {
-        // Grab all three params from query string:
-        $noTitikTanam = $this->request->getGet('noTitikTanam');
-        $ptEstateId   = $this->request->getGet('ptEstateId');
-        $blokId       = $this->request->getGet('blokId');
+        // 1) Grab query params
+        $noTitikTanam    = $this->request->getGet('noTitikTanam');
+        $ptEstateId      = $this->request->getGet('ptEstateId');
+        $blokId          = $this->request->getGet('blokId');
+        $currentStatusId = $this->request->getGet('currentStatusId');
 
-        if (! $noTitikTanam || ! $ptEstateId || ! $blokId) {
+        if (! $noTitikTanam || ! $ptEstateId || ! $blokId || ! $currentStatusId) {
             return $this->response->setJSON([
                 'success' => false,
                 'error'   => 'Parameter tidak lengkap.'
             ]);
         }
 
-        // Lookup the HectareStatement ID (your helper method)
+        // 2) Lookup hs_id
         $hsModel = new HectareStatementModel();
-        $hs = $hsModel->getHectareStatementByPtEstateIdAndBlockId($ptEstateId, $blokId);
+        $hs      = $hsModel->getHectareStatementByPtEstateIdAndBlockId($ptEstateId, $blokId);
         if (! $hs) {
             return $this->response->setJSON([
                 'success' => false,
@@ -281,19 +282,36 @@ class IdentifikasiTanamanController extends ResourceController
         }
         $hsId = $hs['hs_id'];
 
-        // Fetch the latest sister for these coordinates & titik
-        $tanamanModel = new TanamanModel();
-        $status = $tanamanModel->fetchLatestSisterForTitikTanam($noTitikTanam, $hsId);
+        // 3) figure out what the *next* status would be
+        $statusModel   = new StatusModel();
+        $statusToUse = $currentStatusId;
 
-        if ($status['active_count'] > 0) {
-            $nextSister = $status['max_sister'] + 1;
+        // 4) what's the very first status in the cycle?
+        $firstRow      = $statusModel
+            ->orderBy('status_id', 'ASC')
+            ->findAll(1);
+        $firstStatusId = $firstRow[0]['status_id'];
+
+        // 5) now fetch counts *for that next status*
+        $tanamanModel = new TanamanModel();
+        // 5) fetch counts *for that same* status
+        $s = $tanamanModel->fetchLatestSisterForTitikTanamAndStatus(
+            $noTitikTanam,
+            $hsId,
+            $statusToUse
+        );
+
+        if ($s['active_count'] > 0) {
+            // there are still live records at this status, so next sister = max + 1
+            $recommendedSister = $s['max_sister'] + 1;
         } else {
-            $nextSister = 0;
+            // no active rows means this is the first sister at this status
+            $recommendedSister = 0;
         }
 
         return $this->response->setJSON([
             'success' => true,
-            'sister'  => $nextSister
+            'sister'  => $recommendedSister,
         ]);
     }
 

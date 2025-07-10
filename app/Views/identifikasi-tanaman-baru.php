@@ -224,7 +224,8 @@
                                                 </div>
                                                 <div class="form-group">
                                                     <label for="rfid">RFID Tanaman</label>
-                                                    <input type="text" id="rfid" class="form-control" name="rfid" />
+                                                    <input type="text" id="rfid" class="form-control" name="rfid"
+                                                        disabled />
                                                 </div>
                                             </div>
 
@@ -289,439 +290,281 @@
     <script src="<?= base_url('/assets/static/js/pages/simple-datatables.js'); ?>"></script>
     <script src=" <?= base_url('/assets/static/js/pages/simple-datatables.js'); ?>"></script>
     <script>
-        // Function to fetch blocks when a PT & Estate is selected
+        // 1. PT & Estate → Blok
         function updateBloks() {
             const ptEstateId = document.getElementById('pt_estate').value;
             const blokSelect = document.getElementById('blok_id');
-
-            if (ptEstateId) {
-                fetch(`<?= base_url('identifikasi-tanaman/getBloksByPtEstateId'); ?>/${ptEstateId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        blokSelect.innerHTML = '<option value="">Select Blok</option>'; // Reset blok options
-                        data.bloks.forEach(blok => {
-                            const option = document.createElement('option');
-                            option.value = blok.blok_id;
-                            option.textContent = blok.nama_blok;
-                            blokSelect.appendChild(option);
-                        });
-
-                        // Auto-fill fields after fetching blocks
-                        autoFillFields();
-                    })
-                    .catch(error => console.error('Error fetching blocks:', error));
-            } else {
-                blokSelect.innerHTML = '<option value="">Select Blok</option>'; // Reset blok if no PT selected
+            if (!ptEstateId) {
+                blokSelect.innerHTML = '<option value="">Select Blok</option>';
+                return;
             }
+            fetch(`<?= base_url('identifikasi-tanaman/getBloksByPtEstateId'); ?>/${ptEstateId}`)
+                .then(r => r.json())
+                .then(data => {
+                    blokSelect.innerHTML = '<option value="">Select Blok</option>';
+                    data.bloks.forEach(b => {
+                        const opt = document.createElement('option');
+                        opt.value = b.blok_id;
+                        opt.textContent = b.nama_blok;
+                        blokSelect.appendChild(opt);
+                    });
+                    autoFillFields();
+                })
+                .catch(console.error);
         }
 
-        // Function to auto-fill the fields when a blok is selected
+        // 2. Blok → Hectare statement fields
         function autoFillFields() {
             const ptEstateId = document.getElementById('pt_estate').value;
             const blokId = document.getElementById('blok_id').value;
-
-            if (ptEstateId && blokId) {
-                fetch(
-                        `<?= base_url('identifikasi-tanaman/getHectareStatementByPtEstateIdAndBlockId'); ?>/${ptEstateId}/${blokId}`
-                    )
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data) {
-                            document.getElementById('tahun_tanam').value = data.tahun_tanam;
-                            document.getElementById('bulan_tanam').value = data.bulan_tanam;
-                            document.getElementById('luas_tanah').value = data.luas_tanah;
-                            document.getElementById('varian_bibit').value = data.varian_bibit;
-                            document.getElementById('week').value = data.week; // Auto-fill week
-                        }
-                    })
-                    .catch(error => console.error('Error fetching hectare statement data:', error));
-            }
-        }
-
-        function autoFillTitikTanam() {
-            const noTitikTanam = document.getElementById('no_titik_tanam').value; // For seleksi
-            const noTitikTanamShooting = document.getElementById('no_titik_tanam_shooting').value; // For shooting
-            const ptEstateId = document.getElementById('pt_estate').value;
-            const blokId = document.getElementById('blok_id').value;
-
-            const longitudeField = document.getElementById('longitude');
-            const latitudeField = document.getElementById('latitude');
-            const longitudeFieldShooting = document.getElementById('longitude_shooting');
-            const latitudeFieldShooting = document.getElementById('latitude_shooting');
-
-            // Determine which value to use for 'no_titik_tanam'
-            const noTitikTanamToUse = noTitikTanamShooting || noTitikTanam; // If shooting, use 'no_titik_tanam_shooting'
-
-            // If shooting activity, use the shooting fields
-            if (noTitikTanamShooting) {
-                longitudeFieldShooting.readOnly = false; // Make longitude and latitude editable for shooting
-                latitudeFieldShooting.readOnly = false;
-            }
-
-            // If seleksi activity, use the seleksi fields
-            if (noTitikTanamToUse && ptEstateId && blokId) {
-                fetch(
-                        `<?= base_url('identifikasi-tanaman/getNoTitikTanamData'); ?>/${noTitikTanamToUse}/${ptEstateId}/${blokId}`
-                    )
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.found) {
-                            // For seleksi activity, auto-fill longitude and latitude
-                            if (!noTitikTanamShooting) {
-                                longitudeField.value = data.longitude;
-                                latitudeField.value = data.latitude;
-                                longitudeField.readOnly = true;
-                                latitudeField.readOnly = true;
-                            } else {
-                                // For shooting activity, auto-fill longitude and latitude
-                                longitudeFieldShooting.value = data.longitude;
-                                latitudeFieldShooting.value = data.latitude;
-                                longitudeFieldShooting.readOnly = true;
-                                latitudeFieldShooting.readOnly = true;
-                            }
-
-                            autoFillStatus();
-                        } else {
-                            if (!noTitikTanamShooting) {
-                                longitudeField.value = ''; // Reset longitude if not found
-                                latitudeField.value = ''; // Reset latitude if not found
-                                longitudeField.readOnly = false;
-                                latitudeField.readOnly = false;
-                            }
-                            console.log('No data found for No Titik Tanam:', noTitikTanamToUse);
-                            autoFillStatus();
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error fetching No Titik Tanam data:', error);
-                        autoFillStatus();
-                    });
-            } else {
-                if (!noTitikTanamShooting) {
-                    longitudeField.readOnly = false;
-                    latitudeField.readOnly = false;
-                    longitudeField.value = '';
-                    latitudeField.value = '';
-                    autoFillStatus();
-                }
-            }
-        }
-
-        // Function to auto-fill the status dropdown when No Titik Tanam is provided
-        function autoFillStatus() {
-            const noTitikTanam = document.getElementById('no_titik_tanam').value;
-            const statusSelect = document.getElementById('status');
-            const ptEstateId = document.getElementById('pt_estate').value;
-            const blokId = document.getElementById('blok_id').value;
-            const longitudeTanam = document.getElementById('longitude').value;
-            const latitudeTanam = document.getElementById('latitude').value;
-
-            if (noTitikTanam && ptEstateId && blokId && longitudeTanam && latitudeTanam) {
-                fetch(
-                        `<?= base_url('identifikasi-tanaman/getTanamanStatus'); ?>/${noTitikTanam}/${ptEstateId}/${blokId}/${longitudeTanam}/${latitudeTanam}`
-                    )
-                    .then(response => response.json())
-                    .then(data => {
-                        // Clear existing options before adding new ones
-                        statusSelect.innerHTML = '<option value="">Pilih Status</option>';
-
-                        if (data.success) {
-                            data.statusOptions.forEach(status => {
-                                const option = document.createElement('option');
-                                option.value = status.value;
-                                option.textContent = status.label;
-                                statusSelect.appendChild(option);
-                            });
-                        } else {
-                            alert(data.error); // Show error if no status is found
-                        }
-                    })
-                    .catch(error => console.error('Error fetching status options:', error));
-            } else {
-                // Fetch all statuses from the Master Status table
-                fetch('<?= base_url('master-status/data'); ?>')
-                    .then(response => response.json())
-                    .then(data => {
-                        // Clear existing options before adding new ones
-                        statusSelect.innerHTML = '<option value="">Pilih Status</option>';
-
-                        if (data.status) { // Check if 'status' is available in the response
-                            // Loop through all statuses and add them as options
-                            data.status.forEach(
-                                status => { // Change to data.status because the response key is 'status'
-                                    const option = document.createElement('option');
-                                    // Check if the status is 'pc' regardless of case
-                                    if (status.nama_status.toLowerCase() === 'pc') {
-                                        option.value = status.status_id; // Set the value as status_id
-                                        option.textContent = status
-                                            .nama_status; // Display the nama_status as the label
-                                        statusSelect.appendChild(option);
-                                    }
-                                });
-                        } else {
-                            alert('No statuses found'); // Show error if no statuses are found
-                        }
-                    })
-                    .catch(error => console.error('Error fetching master statuses:', error));
-            }
-        }
-
-        function fetchSisterData() {
-            const noTitikTanam = document.getElementById('no_titik_tanam').value;
-            const ptEstateId = document.getElementById('pt_estate').value;
-            const blokId = document.getElementById('blok_id').value;
-
-            // Ensure all necessary parameters are provided
-            if (noTitikTanam && ptEstateId && blokId) {
-                const params = new URLSearchParams({
-                    noTitikTanam: noTitikTanam,
-                    ptEstateId: ptEstateId,
-                    blokId: blokId
-                });
-
-                fetch(`<?= base_url('identifikasi-tanaman/fetchSister'); ?>?${params}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            document.getElementById('sister_ke').value = data.sister;
-                        } else {
-                            console.warn('fetchSister error:', data.error);
-                        }
-                    })
-                    .catch(err => console.error('Error fetching sister data:', err));
-            } else {
-                console.warn('Missing parameters for fetching sister data.');
-            }
-        }
-
-        // 1. Fetch data when block is selected (basic hectare statement data)
-        document.getElementById('blok_id').addEventListener('change', autoFillFields);
-
-        // 2. Populate longitude and latitude when No Titik Tanam changes
-        document.getElementById('no_titik_tanam').addEventListener('change', autoFillTitikTanam);
-        // Add event listener to No Titik Tanam for Shooting activity
-        document.getElementById('no_titik_tanam_shooting').addEventListener('change', function() {
-            autoFillTitikTanam(); // Fetch the data when shooting input changes
-        });
-
-        // 3. (Inside autoFillTitikTanam) Auto-fill status after longitude and latitude are populated
-        //    (autoFillStatus is called from inside autoFillTitikTanam now)
-
-        // 4. Fetch sister data when latitude, longitude, or No Titik Tanam change (after basic data is ready)
-        document.getElementById('no_titik_tanam').addEventListener('blur', fetchSisterData);
-
-        // Separate function for Seleksi activity submission
-        function insertTanamanDataSeleksi() {
-            const formData = new FormData(document.querySelector('form'));
-
-            // Get the selected 'aktivitas_id' and 'status_id' from dropdowns
-            const aktivitasSelect = document.getElementById('tipe_aktivitas');
-            const statusSelect = document.getElementById('status');
-
-            // Get the IDs (aktivitas_id and status_id)
-            const aktivitasId = aktivitasSelect.value;
-            const statusId = statusSelect.value;
-
-            // Append 'aktivitas_id' and 'status_id' to the formData
-            formData.append('tipe_aktivitas', aktivitasId); // Send the ID instead of the name
-            formData.append('status', statusId); // Send the ID instead of the name
-
-            // Send the form data to the backend for Seleksi
-            fetch('<?= base_url('identifikasi-tanaman/insertTanamanDataSeleksi'); ?>', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
+            if (!ptEstateId || !blokId) return;
+            fetch(
+                    `<?= base_url('identifikasi-tanaman/getHectareStatementByPtEstateIdAndBlockId'); ?>/${ptEstateId}/${blokId}`
+                )
+                .then(r => r.json())
                 .then(data => {
-                    if (data.success) {
-                        alert(data.message);
-                        // Save selected values before refreshing
-                        const ptEstateSelect = document.getElementById('pt_estate');
-                        const blokSelect = document.getElementById('blok_id');
-
-                        const ptEstateValue = ptEstateSelect.value;
-                        const blokValue = blokSelect.value;
-
-                        // Refresh the page while preserving the selected values
-                        window.location.reload();
-
-                        // After page reload, we need to restore the selected values
-                        ptEstateSelect.value = ptEstateValue;
-                        blokSelect.value = blokValue;
-                    } else {
-                        alert(data.message || 'An error occurred while inserting Seleksi data');
-                    }
+                    if (!data) return;
+                    document.getElementById('tahun_tanam').value = data.tahun_tanam;
+                    document.getElementById('bulan_tanam').value = data.bulan_tanam;
+                    document.getElementById('luas_tanah').value = data.luas_tanah;
+                    document.getElementById('varian_bibit').value = data.varian_bibit;
+                    document.getElementById('week').value = data.week;
                 })
-                .catch(error => console.error('Error inserting Seleksi data:', error));
+                .catch(console.error);
         }
 
-        // Separate function for Shooting activity submission
-        function insertTanamanDataShooting() {
-            const formData = new FormData(document.querySelector('form'));
-
-            // Ensure that required fields are not empty before proceeding
-            const noTitikTanam = document.getElementById('no_titik_tanam_shooting').value;
+        // 3. No. Titik Tanam → coords & status (seleksi vs shooting)
+        function autoFillTitikTanam() {
             const ptEstateId = document.getElementById('pt_estate').value;
             const blokId = document.getElementById('blok_id').value;
+            const noSeleksi = document.getElementById('no_titik_tanam').value;
+            const noShoot = document.getElementById('no_titik_tanam_shooting').value;
+            const toUse = noShoot || noSeleksi;
+            const lonF = document.getElementById('longitude');
+            const latF = document.getElementById('latitude');
+            const lonFS = document.getElementById('longitude_shooting');
+            const latFS = document.getElementById('latitude_shooting');
 
-            if (!noTitikTanam || !ptEstateId || !blokId) {
-                alert("Please ensure all required fields are filled.");
+            // if shooting, make those fields editable
+            if (noShoot) {
+                lonFS.readOnly = latFS.readOnly = false;
+            }
+
+            if (!toUse || !ptEstateId || !blokId) {
+                if (!noShoot) {
+                    lonF.value = latF.value = '';
+                    lonF.readOnly = latF.readOnly = false;
+                }
+                autoFillStatus();
                 return;
             }
 
-            // Append the necessary data to formData
-            formData.append('no_titik_tanam', noTitikTanam);
-            formData.append('pt_estate', ptEstateId);
-            formData.append('blok_id', blokId);
-
-            // Send the form data to the backend for Shooting
-            fetch('<?= base_url('identifikasi-tanaman/insertTanamanDataShooting'); ?>', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
+            fetch(`<?= base_url('identifikasi-tanaman/getNoTitikTanamData'); ?>/${toUse}/${ptEstateId}/${blokId}`)
+                .then(r => r.json())
                 .then(data => {
-                    if (data.success) {
-                        alert(data.message);
-                        // Refresh or reset page as needed
-                        window.location.reload();
-                    } else {
-                        alert(data.message || 'An error occurred while inserting Shooting data');
+                    if (data.found) {
+                        if (!noShoot) {
+                            lonF.value = data.longitude;
+                            latF.value = data.latitude;
+                            lonF.readOnly = latF.readOnly = true;
+                        } else {
+                            lonFS.value = data.longitude;
+                            latFS.value = data.latitude;
+                            lonFS.readOnly = latFS.readOnly = true;
+                        }
+                    } else if (!noShoot) {
+                        lonF.value = latF.value = '';
+                        lonF.readOnly = latF.readOnly = false;
                     }
+                    autoFillStatus();
                 })
-                .catch(error => {
-                    console.error('Error inserting Shooting data:', error);
-                    alert('An error occurred while submitting the form. Please try again.');
+                .catch(err => {
+                    console.error(err);
+                    autoFillStatus();
                 });
         }
 
-        // Add event listener to the Seleksi submit button
-        document.getElementById('submit-seleksi').addEventListener('click', function() {
-            insertTanamanDataSeleksi(); // Call the Seleksi insert function
-        });
+        // 4. Fill status dropdown
+        function autoFillStatus() {
+            const noSeleksi = document.getElementById('no_titik_tanam').value;
+            const ptEstateId = document.getElementById('pt_estate').value;
+            const blokId = document.getElementById('blok_id').value;
+            const lon = document.getElementById('longitude').value;
+            const lat = document.getElementById('latitude').value;
+            const sel = document.getElementById('status');
 
-        // Add event listener to the Shooting submit button
-        document.getElementById('submit-shooting').addEventListener('click', function() {
-            insertTanamanDataShooting(); // Call the Shooting insert function
-        });
+            if (noSeleksi && ptEstateId && blokId && lon && lat) {
+                fetch(
+                        `<?= base_url('identifikasi-tanaman/getTanamanStatus'); ?>/${noSeleksi}/${ptEstateId}/${blokId}/${lon}/${lat}`
+                    )
+                    .then(r => r.json())
+                    .then(data => {
+                        sel.innerHTML = '<option value="">Pilih Status</option>';
+                        if (data.success) {
+                            data.statusOptions.forEach(s => {
+                                const o = document.createElement('option');
+                                o.value = s.value;
+                                o.textContent = s.label;
+                                sel.appendChild(o);
+                            });
+                        } else {
+                            alert(data.error);
+                        }
+                    })
+                    .catch(console.error);
+            } else {
+                // default: only “PC”
+                fetch('<?= base_url('master-status/data'); ?>')
+                    .then(r => r.json())
+                    .then(data => {
+                        sel.innerHTML = '<option value="">Pilih Status</option>';
+                        (data.status || []).forEach(s => {
+                            if (s.nama_status.toLowerCase() === 'pc') {
+                                const o = document.createElement('option');
+                                o.value = s.status_id;
+                                o.textContent = s.nama_status;
+                                sel.appendChild(o);
+                            }
+                        });
+                    })
+                    .catch(console.error);
+            }
+        }
 
-        // Function to toggle visibility of cards based on activity type
+        // 5. Fetch & recommend “sisterKe” when status changes or No. Titik loses focus
+        function fetchSisterData() {
+            const noTT = document.getElementById('no_titik_tanam').value;
+            const ptEstate = document.getElementById('pt_estate').value;
+            const blokId = document.getElementById('blok_id').value;
+            const curStat = document.getElementById('status').value;
+            if (!noTT || !ptEstate || !blokId || !curStat) return console.warn('Missing for sister');
+            const params = new URLSearchParams({
+                noTitikTanam: noTT,
+                ptEstateId: ptEstate,
+                blokId,
+                currentStatusId: curStat
+            });
+            fetch(`<?= base_url('identifikasi-tanaman/fetchSister'); ?>?${params}`)
+                .then(r => r.json())
+                .then(d => {
+                    if (d.success) document.getElementById('sister_ke').value = d.sister;
+                    else console.warn('Sister error', d.error);
+                })
+                .catch(console.error);
+        }
+
+        // 6. Submit handlers
+        function insertTanamanDataSeleksi() {
+            const f = new FormData(document.querySelector('form'));
+            f.append('tipe_aktivitas', document.getElementById('tipe_aktivitas').value);
+            f.append('status', document.getElementById('status').value);
+            fetch('<?= base_url('identifikasi-tanaman/insertTanamanDataSeleksi'); ?>', {
+                method: 'POST',
+                body: f
+            }).then(r => r.json()).then(d => {
+                alert(d.success ? d.message : (d.error || 'Gagal'));
+                if (d.success) window.location.reload();
+            }).catch(console.error);
+        }
+
+        function insertTanamanDataShooting() {
+            const noShoot = document.getElementById('no_titik_tanam_shooting').value;
+            const ptEstate = document.getElementById('pt_estate').value;
+            const blokId = document.getElementById('blok_id').value;
+            if (!noShoot || !ptEstate || !blokId) return alert('Lengkapi semua bidang.');
+            const f = new FormData(document.querySelector('form'));
+            f.append('no_titik_tanam', noShoot);
+            f.append('pt_estate', ptEstate);
+            f.append('blok_id', blokId);
+            fetch('<?= base_url('identifikasi-tanaman/insertTanamanDataShooting'); ?>', {
+                method: 'POST',
+                body: f
+            }).then(r => r.json()).then(d => {
+                alert(d.success ? d.message : (d.error || 'Gagal'));
+                if (d.success) window.location.reload();
+            }).catch(console.error);
+        }
+
+        // 7. Toggle cards & shooting list
         function toggleCards() {
-            const tipeAktivitasSelect = document.getElementById('tipe_aktivitas');
-            const tipeAktivitasText = tipeAktivitasSelect.options[tipeAktivitasSelect.selectedIndex].text.toLowerCase();
-            const seleksiCard = document.getElementById('identifikasi-tanaman-card');
-            const shootingCard = document.getElementById('shooting-card');
-            const rfidField = document.getElementById('rfid');
-            const hectareStatementCard = document.getElementById('hectare-statement-card');
-
-            // Show/Hide cards based on activity type
-            if (tipeAktivitasText === 'seleksi') {
-                rfidField.disabled = true; // Disable the RFID input field
-                rfidField.value = ''; // Clear RFID field
-                hectareStatementCard.style.display = 'block';
-                seleksiCard.style.display = 'block';
-                shootingCard.style.display = 'none';
-            } else if (tipeAktivitasText === 'shooting') {
-                hectareStatementCard.style.display = 'block';
-                seleksiCard.style.display = 'none';
-                shootingCard.style.display = 'block';
+            const txt = document.getElementById('tipe_aktivitas')
+                .selectedOptions[0].text.toLowerCase();
+            document.getElementById('hectare-statement-card').style.display = 'block';
+            document.getElementById('identifikasi-tanaman-card').style.display = txt === 'seleksi' ? 'block' : 'none';
+            document.getElementById('shooting-card').style.display = txt === 'shooting' ? 'block' : 'none';
+            if (txt === 'shooting') {
                 autoFillTitikTanam();
                 autoFillTanamanData();
             } else {
-                seleksiCard.style.display = 'none';
-                shootingCard.style.display = 'none';
+                document.getElementById('rfid').value = '';
             }
         }
 
         function autoFillTanamanData() {
-            const noTitikTanam = document.getElementById('no_titik_tanam_shooting').value;
-            const ptEstateId = document.getElementById('pt_estate').value; // Get PT Estate ID
-            const blokId = document.getElementById('blok_id').value; // Get Blok ID
-            const tipeAktivitas = document.getElementById('tipe_aktivitas').value; // Get Tipe Aktivitas
-            const tanamanContainer = document.getElementById('tanaman-container-shooting');
-
-            if (noTitikTanam && ptEstateId && blokId && tipeAktivitas) {
-                // Show loading indicator
-                tanamanContainer.innerHTML = 'Loading...';
-
-                // Create the URL with the additional parameters
-                const url =
-                    `<?= base_url('identifikasi-tanaman/getActiveTanamanDataSeleksi'); ?>/${noTitikTanam}?pt_estate_id=${ptEstateId}&blok_id=${blokId}&tipe_aktivitas=${tipeAktivitas}`;
-
-                fetch(url)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            tanamanContainer.innerHTML = ''; // Clear loading text
-
-                            data.tanaman.forEach((tanaman, index) => {
-                                const formHtml = `
-                            <div class="card">
-                                <div class="card-header">
-                                    <h4 class="card-title">Tanaman ${index + 1}</h4>
-                                </div>
-                                <div class="card-body">
-                                    <div class="form-group">
-                                        <label>RFID</label>
-                                        <input type="text" class="form-control" name="rfid_tanaman[${index}]"
-                                            id="rfid_tanaman_${index}" value="${tanaman.rfid_tanaman}" readonly />
-                                        <input type="hidden" name="tanaman_id[${index}]" value="${tanaman.tanaman_id}" />
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Perbarui RFID?</label>
-                                        <input type="checkbox" class="form-check-input" id="update_rfid_${index}" 
-                                            name="update_rfid[${index}]" onchange="toggleNewRfid(${index})" />
-                                        <div id="updateRfidFields_${index}" style="display: none;">
-                                            <input type="text" class="form-control" name="new_rfid[${index}]"
-                                                id="update_rfid_tanaman_${index}" placeholder="Masukkan RFID baru" />
-                                        </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Sister</label>
-                                        <input type="text" class="form-control" name="sister[${index}]"
-                                            id="sister_${index}" value="${tanaman.sister}" readonly />
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Status</label>
-                                        <input type="text" class="form-control" name="status[${index}]"
-                                            id="status_${index}" value="${tanaman.nama_status}" readonly />
-                                    </div>
-                                </div>
-                            </div>`;
-                                tanamanContainer.innerHTML += formHtml;
-                            });
-                        } else {
-                            tanamanContainer.innerHTML = 'Tidak ada tanaman aktif ditemukan.';
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Gagal mengambil data tanaman aktif:', error);
-                        tanamanContainer.innerHTML = 'Terjadi kesalahan saat mengambil data tanaman.';
-                    });
-            }
+            const noShoot = document.getElementById('no_titik_tanam_shooting').value;
+            const ptEstate = document.getElementById('pt_estate').value;
+            const blokId = document.getElementById('blok_id').value;
+            const tipe = document.getElementById('tipe_aktivitas').value;
+            const cont = document.getElementById('tanaman-container-shooting');
+            if (!noShoot || !ptEstate || !blokId || !tipe) return;
+            cont.innerHTML = 'Loading…';
+            const url = `<?= base_url('identifikasi-tanaman/getActiveTanamanDataSeleksi'); ?>/${noShoot}` +
+                `?pt_estate_id=${ptEstate}&blok_id=${blokId}&tipe_aktivitas=${tipe}`;
+            fetch(url).then(r => r.json()).then(d => {
+                if (!d.success) return cont.textContent = 'Tidak ada tanaman…';
+                cont.innerHTML = '';
+                d.tanaman.forEach((t, i) => {
+                    cont.innerHTML += `
+          <div class="card mb-2">
+            <div class="card-header">Tanaman ${i+1}</div>
+            <div class="card-body">
+              <div>
+                <label>RFID</label>
+                <input readonly class="form-control" name="rfid_tanaman[${i}]" value="${t.rfid_tanaman||''}">
+                <input type="hidden" name="tanaman_id[${i}]" value="${t.tanaman_id}">
+              </div>
+              <div>
+                <label><input type="checkbox" class="form-check-input" name="update_rfid[${i}]" id="upd${i}" onchange="toggleNewRfid(${i})"> Perbarui RFID?</label>
+                <div id="updF${i}" style="display:none;">
+                  <input class="form-control" name="new_rfid[${i}]" placeholder="Masukkan RFID baru">
+                </div>
+              </div>
+              <div>
+                <label>Sister</label>
+                <input readonly class="form-control" name="sister[${i}]" value="${t.sister}">
+              </div>
+              <div>
+                <label>Status</label>
+                <input readonly class="form-control" name="status[${i}]" value="${t.nama_status}">
+              </div>
+            </div>
+          </div>`;
+                });
+            }).catch(err => {
+                console.error(err);
+                cont.textContent = 'Error loading.';
+            });
         }
 
-        // Toggle RFID input field visibility for Shooting Activity
-        function toggleNewRfid(index) {
-            const checkbox = document.getElementById(`update_rfid_${index}`);
-            const newRfidFields = document.getElementById(`updateRfidFields_${index}`);
-            newRfidFields.style.display = checkbox.checked ? 'block' : 'none';
+        function toggleNewRfid(i) {
+            document.getElementById(`updF${i}`)
+                .style.display = document.getElementById(`upd${i}`).checked ? 'block' : 'none';
         }
 
-        // Add event listener to No Titik Tanam for Shooting activity
-        document.getElementById('no_titik_tanam_shooting').addEventListener('change', function() {
-            if (!this.value) {
-                document.getElementById('tanaman-container-shooting').innerHTML = ''; // Clear the container
-            }
-            autoFillTanamanData(); // Fetch tanaman data
+        // ─── Wire up all listeners ─────────────────────
+        document.getElementById('pt_estate').addEventListener('change', updateBloks);
+        document.getElementById('blok_id').addEventListener('change', autoFillFields);
+        document.getElementById('no_titik_tanam').addEventListener('change', autoFillTitikTanam);
+        document.getElementById('no_titik_tanam').addEventListener('blur', fetchSisterData);
+        document.getElementById('status').addEventListener('change', fetchSisterData);
+        document.getElementById('no_titik_tanam_shooting').addEventListener('change', () => {
+            autoFillTitikTanam();
+            autoFillTanamanData();
         });
-
-        // Call toggleCards on page load to check the initial state
-        document.addEventListener('DOMContentLoaded', function() {
-            toggleCards(); // Ensure the correct card is visible based on selected activity
-        });
+        document.getElementById('submit-seleksi').addEventListener('click', insertTanamanDataSeleksi);
+        document.getElementById('submit-shooting').addEventListener('click', insertTanamanDataShooting);
+        document.addEventListener('DOMContentLoaded', toggleCards);
     </script>
-
     <script>
         // once the DOM is ready...
         document.addEventListener('DOMContentLoaded', () => {

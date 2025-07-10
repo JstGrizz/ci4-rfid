@@ -100,26 +100,29 @@ class TanamanModel extends Model
         return $activeCount > 0;
     }
 
-    public function fetchLatestSisterForTitikTanam($noTitikTanam, $hsId)
+    public function fetchLatestSisterForTitikTanamAndStatus($noTitikTanam, $hsId, $statusId)
     {
-        // Fetch the maximum sister number for the given no_titik_tanam and hs_id
-        $maxSister = $this->selectMax('sister')
+        // 1) highest sister for that titik/hs *and* status
+        $row = $this->selectMax('sister')
             ->where('no_titik_tanam', $noTitikTanam)
-            ->where('hs_id', $hsId)
-            ->first()['sister'] ?? 0;
+            ->where('hs_id',           $hsId)
+            ->where('status_id',       $statusId)
+            ->first();
 
-        // Count how many active records exist for the given no_titik_tanam and hs_id
-        $activeCount = $this->where('tgl_akhir_identifikasi', null)
-            ->where('no_titik_tanam', $noTitikTanam)
-            ->where('hs_id', $hsId)
-            ->countAllResults() ?? 0;
+        $maxSister = $row['sister'] ?? 0;
+
+        // 2) how many are still active (tgl_akhir_identifikasi IS NULL)
+        $activeCount = $this->where('no_titik_tanam', $noTitikTanam)
+            ->where('hs_id',           $hsId)
+            ->where('status_id',       $statusId)
+            ->where('tgl_akhir_identifikasi', null)
+            ->countAllResults();
 
         return [
-            'max_sister'   => $maxSister,
-            'active_count' => $activeCount,
+            'max_sister'   => (int)$maxSister,
+            'active_count' => (int)$activeCount,
         ];
     }
-
 
     public function updateTanamanData($noTitikTanam, $hsId, $index, $updateData)
     {
@@ -182,5 +185,14 @@ class TanamanModel extends Model
             ->where('tanaman.tgl_akhir_identifikasi IS NOT NULL')
             ->where('tanaman.losses_id IS NOT NULL')
             ->countAllResults();
+    }
+
+    public function countAllSisters($noTitik, $hsId, $statusId)
+    {
+        return $this->where([
+            'no_titik_tanam' => $noTitik,
+            'hs_id'          => $hsId,
+            'status_id'      => $statusId
+        ])->countAllResults();
     }
 }
