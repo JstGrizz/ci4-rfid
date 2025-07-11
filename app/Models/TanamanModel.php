@@ -102,25 +102,33 @@ class TanamanModel extends Model
 
     public function fetchLatestSisterForTitikTanamAndStatus($noTitikTanam, $hsId, $statusId)
     {
-        // 1) highest sister for that titik/hs *and* status
-        $row = $this->selectMax('sister')
-            ->where('no_titik_tanam', $noTitikTanam)
-            ->where('hs_id',           $hsId)
-            ->where('status_id',       $statusId)
+        // 1) Fetch all records with the same no_titik_tanam and status_id, including inactive
+        $query = $this->where('no_titik_tanam', $noTitikTanam)
+            ->where('hs_id', $hsId)
+            ->where('status_id', $statusId);
+
+        // 2) Get the max sister value from active records only (those with no tgl_akhir_identifikasi)
+        $maxSisterRow = $this->selectMax('sister')
+            ->where('tgl_akhir_identifikasi', null)  // Only active records
             ->first();
 
-        $maxSister = $row['sister'] ?? 0;
+        // If no active records, fallback to checking inactive records
+        $maxSister = $maxSisterRow ? $maxSisterRow['sister'] : 0;
 
-        // 2) how many are still active (tgl_akhir_identifikasi IS NULL)
+        // 3) Count active records for this status
         $activeCount = $this->where('no_titik_tanam', $noTitikTanam)
-            ->where('hs_id',           $hsId)
-            ->where('status_id',       $statusId)
+            ->where('hs_id', $hsId)
+            ->where('status_id', $statusId)
             ->where('tgl_akhir_identifikasi', null)
             ->countAllResults();
 
+        // 4) Calculate the next sister number
+        $nextSister = $activeCount > 0 ? $maxSister + 1 : $maxSister;
+
         return [
-            'max_sister'   => (int)$maxSister,
+            'max_sister' => (int)$maxSister,
             'active_count' => (int)$activeCount,
+            'next_sister' => (int)$nextSister,
         ];
     }
 
