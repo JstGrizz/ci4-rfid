@@ -83,7 +83,7 @@ class TanamanModel extends Model
             ->where('latitude_tanam', $latitudeTanam)
             ->where('no_titik_tanam', $noTitikTanam)
             ->where('hs_id', $hsId)
-            ->orderBy('tgl_mulai_identifikasi', 'DESC')
+            ->orderBy('tanaman_id', 'DESC')
             ->first()['status_id'] ?? null;
     }
 

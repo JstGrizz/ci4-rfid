@@ -204,13 +204,19 @@ class IdentifikasiTanamanController extends ResourceController
 
     public function getTanamanStatus($noTitikTanam, $ptEstateId, $blokId, $longitudeTanam, $latitudeTanam)
     {
+        // 1. Get hsId
         $hsId = $this->getHsIdByPtEstateAndBlok($ptEstateId, $blokId);
 
         if ($hsId === null) {
+            // log_message('debug', 'Pernyataan Hektar tidak ditemukan for ptEstateId: ' . $ptEstateId . ' blokId: ' . $blokId);
             return $this->response->setJSON(['success' => false, 'error' => 'Pernyataan Hektar tidak ditemukan.']);
         }
 
         $tanamanModel = new TanamanModel();
+        $statusModel = new StatusModel(); // Instantiate StatusModel once
+
+        // 2. Fetch the latest status ID for the given plant coordinates and ID
+        // This method should now be ordering by 'tanaman_id' DESC as per our last discussion.
         $latestStatusID = $tanamanModel->fetchLatestStatusForTitikTanam(
             $longitudeTanam,
             $latitudeTanam,
@@ -218,8 +224,14 @@ class IdentifikasiTanamanController extends ResourceController
             $hsId
         );
 
+        // log_message('debug', 'Latest Status ID fetched: ' . ($latestStatusID ?? 'NULL') .
+        //     ' for noTitikTanam: ' . $noTitikTanam .
+        //     ', longitude: ' . $longitudeTanam .
+        //     ', latitude: ' . $latitudeTanam .
+        //     ', hsId: ' . $hsId);
+
         if ($latestStatusID !== null) {
-            $statusModel = new StatusModel();
+            // 3. Check if the latest status is currently 'active' (tgl_akhir_identifikasi is NULL)
             $isActive = $tanamanModel->checkIfStatusIsActive(
                 $longitudeTanam,
                 $latitudeTanam,
@@ -227,23 +239,35 @@ class IdentifikasiTanamanController extends ResourceController
                 $hsId,
                 $latestStatusID
             );
+            // log_message('debug', 'Is Status Active for latestStatusID ' . $latestStatusID . ': ' . ($isActive ? 'true' : 'false'));
 
             $statusOptions = [];
             if ($isActive) {
-                $statusOptions[] = ['value' => $latestStatusID, 'label' => $statusModel->find($latestStatusID)['nama_status']];
+                // SCENARIO A: The latest status is currently ACTIVE (tgl_akhir_identifikasi IS NULL).
+                // In this case, NO transition is recommended. Only the current active status is shown.
+                // log_message('debug', 'Entering isActive block. Status is active, showing current status only.');
+                $currentStatusInfo = $statusModel->find($latestStatusID);
+                $statusOptions[] = ['value' => $currentStatusInfo['status_id'], 'label' => $currentStatusInfo['nama_status']];
             } else {
+                // SCENARIO B: The latest status is NOT active (tgl_akhir_identifikasi is NOT NULL).
+                // This indicates a closed status, so we recommend the NEXT status in the sequence.
+                // log_message('debug', 'Entering NOT active block. Status is inactive, suggesting next status in sequence.');
                 $nextStatus = $statusModel->determineNextStatus($latestStatusID);
                 $statusOptions[] = $nextStatus;
             }
 
+            // log_message('debug', 'Final Status Options determined: ' . json_encode($statusOptions));
             return $this->response->setJSON(['success' => true, 'statusOptions' => $statusOptions]);
         } else {
-            $statusModel = new StatusModel();
+            // 4. No latest status found for the given parameters (first time identifying this plant).
+            // Suggest the default 'PC' status.
+            // log_message('debug', 'No latest status found. Suggesting default PC status.');
             $defaultStatus = $statusModel->where('nama_status', 'PC')
                 ->orWhere('nama_status', 'pc')
                 ->first();
 
             if ($defaultStatus) {
+                // log_message('debug', 'Default PC status found: ' . json_encode($defaultStatus));
                 return $this->response->setJSON([
                     'success' => true,
                     'statusOptions' => [
@@ -253,6 +277,7 @@ class IdentifikasiTanamanController extends ResourceController
             }
         }
 
+        // log_message('error', 'Status not found fallback for unknown reason.');
         return $this->response->setJSON(['success' => false, 'error' => 'Status tidak ditemukan.']);
     }
 
