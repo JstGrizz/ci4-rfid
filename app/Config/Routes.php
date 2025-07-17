@@ -267,7 +267,7 @@ $routes->group('', ['filter' => 'authFilter'], function ($routes) {
 #--------------------------------------------------------------------
 $routes->post('/login-process-android', 'AndroidController::loginProcessAndroid');
 $routes->post('android/download', 'AndroidController::download');
-$routes->get('android/update', 'AndroidController::download/$1');
+$routes->post('android/uploadData', 'AndroidController::uploadData');
 
 #--------------------------------------------------------------------
 # WEBSITE
