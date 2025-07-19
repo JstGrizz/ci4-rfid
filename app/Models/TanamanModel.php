@@ -144,6 +144,7 @@ class TanamanModel extends Model
     public function getActivePlantsForAdminView()
     {
         return $this->select('
+        tanaman.sister,
         pt_estate.pt,
         pt_estate.estate,
         master_blok.nama_blok AS blok,

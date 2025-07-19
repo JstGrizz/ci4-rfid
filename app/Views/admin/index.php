@@ -77,6 +77,7 @@
                                                     <th>No Titik Tanam</th>
                                                     <th>RFID</th>
                                                     <th>Status</th>
+                                                    <th>Sister</th>
                                                     <th>Umur (Minggu)</th>
                                                     <th>Tipe Aktivitas</th>
                                                 </tr>
@@ -92,13 +93,14 @@
                                                             <td><?= esc($data['no_titik_tanam']) ?></td>
                                                             <td><?= esc($data['rfid_tanaman']) ?></td>
                                                             <td><?= esc($data['status']) ?></td>
+                                                            <td><?= esc($data['sister']) ?></td>
                                                             <td><?= $data['umur'] ?></td>
                                                             <td><?= esc($data['tipe_aktivitas']) ?></td>
                                                         </tr>
                                                     <?php endforeach; ?>
                                                 <?php else : ?>
                                                     <tr>
-                                                        <td colspan="9">No data found</td>
+                                                        <td colspan="10">No data found</td>
                                                     </tr>
                                                 <?php endif; ?>
                                             </tbody>
